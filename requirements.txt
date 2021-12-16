@@ -1,0 +1,6 @@
+tensorflow
+tensorflow_datasets
+tensorflow_addons
+tensorflow_io
+matplotlib
+tqdm
