@@ -33,20 +33,20 @@ class DatasetGenerator:
         :return:
             RGB image(H,W,3), Depth map(H,W,1)
         """
-        img = sample['image']
+        img = tf.cast(sample['image'], tf.float32)
         depth = sample['depth']
 
-        img = tf.image.resize(img, (self.image_size[0], self.image_size[1], tf.image.ResizeMethod.BILINEAR))
-        depth = tf.image.resize(depth, (self.image_size[0], self.image_size[1], tf.image.ResizeMethod.BILINEAR))
+        depth = tf.expand_dims(depth, axis=-1)
+        img = tf.image.resize(img, (self.image_size[0], self.image_size[1]), tf.image.ResizeMethod.BILINEAR)
+        depth = tf.image.resize(depth, (self.image_size[0], self.image_size[1]), tf.image.ResizeMethod.BILINEAR)
 
         # Format
-        img = tf.image.convert_image_dtype(img, dtype=tf.float32)
-        depth = tf.image.convert_image_dtype(depth / 255.0, dtype=tf.float32)
+        img = tf.image.convert_image_dtype(img / 255., dtype=tf.float32)
+        depth = tf.image.convert_image_dtype(depth/255., dtype=tf.float32)
+        depth = tf.math.divide_no_nan(1000., depth*1000)
+        depth /= 1000.
 
-        # Normalize the depth values (in cm)
-        depth = 1000 / tf.clip_by_value(depth * 1000, 10, 1000)
-
-        return img, depth
+        return (img, depth)
 
 
 
