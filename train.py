@@ -104,7 +104,7 @@ if DISTRIBUTION_MODE:
         train_data = mirrored_strategy.experimental_distribute_dataset(train_data)
         valid_data = mirrored_strategy.experimental_distribute_dataset(valid_data)
 
-        model_input, model_output = base_model(image_size=IMAGE_SIZE, num_classes=num_classes)
+        model_input, model_output = base_model(image_size=IMAGE_SIZE, output_channel=num_classes)
         model = tf.keras.Model(model_input, model_output)
         model.compile(
             optimizer=optimizer,
