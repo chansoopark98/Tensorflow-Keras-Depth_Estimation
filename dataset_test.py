@@ -10,23 +10,23 @@ valid_data = dataset.get_validData()
 
 if __name__ == "__main__":
     for img, depth in train_data.take(100):
-        depth = tf.expand_dims(depth, axis=-1)
-        # img = tf.image.resize(img, (self.image_size[0], self.image_size[1]), tf.image.ResizeMethod.BILINEAR)
-        # depth = tf.image.resize(depth, (self.image_size[0], self.image_size[1]), tf.image.ResizeMethod.BILINEAR)
+        img = img[0]
+        depth = depth[0]
 
         # Format
-        img = tf.image.convert_image_dtype(img / 255., dtype=tf.float32)
-        depth = tf.image.convert_image_dtype(depth/255., dtype=tf.float32)
+        # img = tf.image.convert_image_dtype(img5., dtype=tf.float32)
+        # depth = tf.image.convert_image_dtype(depth/255., dtype=tf.float32)
         # depth = tf.cast(depth / 255.0, tf.float32)
         # Normalize the depth values (in cm)
         # norm_depth = 1000 / tf.clip_by_value(norm_depth * 1000, 10, 1000)
         # norm_depth = 1. / depth
+
         norm_depth = tf.math.divide_no_nan(1000., depth*1000)
         norm_depth /= 1000.
 
 
         rows = 1
-        cols = 2
+        cols = 3
         fig = plt.figure()
         ax0 = fig.add_subplot(rows, cols, 1)
         ax0.imshow(img)
@@ -34,8 +34,14 @@ if __name__ == "__main__":
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(norm_depth)
+        ax0.imshow(depth)
         ax0.set_title('depth')
+        ax0.axis("off")
+
+
+        ax0 = fig.add_subplot(rows, cols, 3)
+        ax0.imshow(norm_depth)
+        ax0.set_title('norm_depth')
         ax0.axis("off")
 
     

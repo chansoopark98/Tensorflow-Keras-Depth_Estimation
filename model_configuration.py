@@ -62,7 +62,7 @@ class ModelConfiguration():
                                             monitor='val_m_io_u', save_best_only=True, save_weights_only=True,
                                             verbose=1, mode='max')
 
-        tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR +'semantic/' + self.MODEL_PREFIX, write_graph=True, write_images=True)
+        tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR +'depth_estimation/' + self.MODEL_PREFIX, write_graph=True, write_images=True)
 
         polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.INIT_LR,
                                                                 decay_steps=self.EPOCHS,

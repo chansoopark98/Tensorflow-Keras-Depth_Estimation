@@ -14,13 +14,13 @@ parser = argparse.ArgumentParser()
 # Set Convert to SavedMoel
 parser.add_argument("--saved_model",  help="SavedModel.pb 변환", action='store_true')
 parser.add_argument("--saved_model_path", type=str,   help="저장된 모델 가중치 경로",
-                    default='./checkpoints/0629/_0629_224-224_16_100_0.002_adam_single_DDRNet_best_iou.h5')
+                    default='your_model.h5')
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name",
-                    default='0712_480_320-b16-e100-adam-lr_0.002-ce_loss-EFFV2S-effnet-aug-multi')
+                    default='test')
 parser.add_argument("--batch_size",       type=int,    help="배치 사이즈값 설정",
-                    default=16)
+                    default=8)
 parser.add_argument("--epoch",            type=int,    help="에폭 설정",
                     default=100)
 parser.add_argument("--lr",               type=float,  help="Learning rate 설정",
