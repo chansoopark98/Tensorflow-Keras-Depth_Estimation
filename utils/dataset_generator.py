@@ -15,6 +15,8 @@ class DatasetGenerator:
         self.image_size = image_size
         self.batch_size = batch_size
         self.train_data, self.valid_data = self.initial_load()
+        self.number_train = 47584
+        self.number_valid = 654
 
     def initial_load(self):
         """
