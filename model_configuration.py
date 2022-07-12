@@ -77,7 +77,7 @@ class ModelConfiguration():
         if self.OPTIMIZER_TYPE == 'sgd':
             self.optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'adam':
-            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR)
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR, amsgrad=True)
         elif self.OPTIMIZER_TYPE == 'radam':
             self.optimizer =  tfa.optimizers.RectifiedAdam(learning_rate=self.INIT_LR,
                                                     weight_decay=0.00001,
