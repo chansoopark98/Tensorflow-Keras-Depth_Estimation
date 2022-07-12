@@ -1,6 +1,7 @@
 import tensorflow as tf
 from utils.dataset_generator import DatasetGenerator
 from utils.plot_generator import plot_generator
+import matplotlib.pyplot as plt
 
 dataset = DatasetGenerator(data_dir='./datasets/', image_size=(256, 256), batch_size=1)
 
@@ -24,7 +25,21 @@ if __name__ == "__main__":
         norm_depth /= 1000.
 
 
-        plot_generator(img=img, gt=depth, predict=norm_depth)
+        rows = 1
+        cols = 2
+        fig = plt.figure()
+        ax0 = fig.add_subplot(rows, cols, 1)
+        ax0.imshow(img)
+        ax0.set_title('img')
+        ax0.axis("off")
+
+        ax0 = fig.add_subplot(rows, cols, 2)
+        ax0.imshow(norm_depth)
+        ax0.set_title('depth')
+        ax0.axis("off")
+
+    
+        plt.show()
 
 
 
