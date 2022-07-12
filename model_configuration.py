@@ -15,11 +15,11 @@ class ModelConfiguration():
         self.mirrored_strategy = mirrored_strategy
 
     def configuration_dataset(self):
-        self.train_dataset_config = DatasetGenerator(self.DATASET_DIR, self.IMAGE_SIZE, self.BATCH_SIZE, mode='train')
-        self.valid_dataset_config = DatasetGenerator(self.DATASET_DIR, self.IMAGE_SIZE, self.BATCH_SIZE, mode='validation')
+        self.train_dataset_config = DatasetGenerator(self.DATASET_DIR, self.IMAGE_SIZE, self.BATCH_SIZE)
+        self.valid_dataset_config = DatasetGenerator(self.DATASET_DIR, self.IMAGE_SIZE, self.BATCH_SIZE)
 
-        self.train_data = self.train_dataset_config.get_trainData(self.train_dataset_config.train_data)
-        self.valid_data = self.valid_dataset_config.get_validData(self.valid_dataset_config.valid_data)
+        self.train_data = self.train_dataset_config.get_trainData()
+        self.valid_data = self.valid_dataset_config.get_validData()
 
         self.steps_per_epoch = self.train_dataset_config.number_train // self.BATCH_SIZE
         self.validation_steps = self.valid_dataset_config.number_valid // self.BATCH_SIZE
@@ -91,7 +91,7 @@ class ModelConfiguration():
             self.optimizer = mixed_precision.LossScaleOptimizer(self.optimizer, loss_scale='dynamic')
 
     
-    def configuration_model(self, image_size=None, num_classes=None):
+    def configuration_model(self):
         self.model = base_model(image_size=self.IMAGE_SIZE, output_channel=1)
         self.model.summary()
 

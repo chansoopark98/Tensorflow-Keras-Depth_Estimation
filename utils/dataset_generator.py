@@ -15,8 +15,8 @@ class DatasetGenerator:
         self.image_size = image_size
         self.batch_size = batch_size
         self.train_data, self.valid_data = self.initial_load()
-        self.number_train = 47584
-        self.number_valid = 654
+        # self.number_train = 47584
+        # self.number_valid = 654
 
     def initial_load(self):
         """
@@ -24,8 +24,11 @@ class DatasetGenerator:
         :return:
             train data, validation data
         """
-        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train')
+        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train[:10%]')
         valid_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='validation')
+
+        self.number_valid = valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_train = train_data.reduce(0, lambda x, _: x + 1).numpy()
 
         return train_data, valid_data
 

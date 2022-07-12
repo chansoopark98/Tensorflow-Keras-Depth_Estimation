@@ -12,7 +12,7 @@ class Unet():
     def build_generator(self):
 
         gen_input_shape=(self.image_size[0], self.image_size[1], self.input_channel)
-        input_src_image = Input(shape=gen_input_shape)
+        input_src_image = Input(gen_input_shape)
 
         # encoder model
         e1 = self._encoder_block(input_src_image, 32, batchnorm=False) # 256 1/2
@@ -41,7 +41,7 @@ class Unet():
         # out_image = Activation('tanh')(g)
         
         # define model
-        model = Model(input_src_image, output, name='generator_model')
+        model = Model(inputs=input_src_image, outputs=output, name='generator_model')
         model.trainable = True
 
         return model
@@ -73,4 +73,4 @@ class Unet():
         # leaky relu activation
         g = LeakyReLU(alpha=0.2)(g)
 
-        return 
+        return g
