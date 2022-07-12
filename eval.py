@@ -10,13 +10,13 @@ parser = argparse.ArgumentParser()
 
 # Set Convert to SavedMoel
 parser.add_argument("--saved_model_path", type=str,   help="저장된 모델 가중치 경로",
-                    default='./checkpoints/0712/_0712_B16_E100_LR-0.001_320-320_train-10%_UNet_best_loss.h5')
+                    default='./checkpoints/0712/_0712_B8_E100_LR-0.001_320-320_train_HRNet_best_loss.h5')
 parser.add_argument("--batch_size",       type=int,    help="배치 사이즈값 설정",
                     default=16)
 parser.add_argument("--num_classes",      type=int,    help="분류할 클래수 개수 설정",
                     default=1)
 parser.add_argument("--image_size",       type=tuple,  help="조정할 이미지 크기 설정",
-                    default=(320, 320))
+                    default=(480, 640))
 
 # Set dataset directory path 
 parser.add_argument("--dataset_dir",      type=str,    help="데이터셋 다운로드 디렉토리 설정",

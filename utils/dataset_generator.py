@@ -17,8 +17,7 @@ class DatasetGenerator:
         self.train_data, self.valid_data = self.initial_load()
         self.minDepth = 10
         self.maxDepth = 1000
-        # self.number_train = 47584
-        # self.number_valid = 654
+        
 
     def initial_load(self):
         """
@@ -26,24 +25,29 @@ class DatasetGenerator:
         :return:
             train data, validation data
         """
-        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train')
+        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train[:20%]')
         valid_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='validation')
 
         self.number_valid = valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_train = train_data.reduce(0, lambda x, _: x + 1).numpy()
+        # self.number_train = 47584
+        # self.number_valid = 654
 
         return train_data, valid_data
 
 
     def test_preprocess(self, sample):
-        img = sample['image']
+        img = tf.cast(sample['image'], tf.float32)
         depth = sample['depth']
-        depth = self.maxDepth / depth
-    
+
+        img /= 255.
+        
+        depth = tf.expand_dims(depth, axis=-1)
         depth = 1. - (tf.clip_by_value(depth, self.minDepth, self.maxDepth) / self.maxDepth)
 
         return img, depth
 
+    @tf.function
     def preprocess(self, sample):
         """
         preprocessing image
@@ -53,13 +57,13 @@ class DatasetGenerator:
         img = tf.cast(sample['image'], tf.float32)
         depth = sample['depth']
 
-        depth = tf.expand_dims(depth, axis=-1)
 
-        # Format
+        img /= 255.
+
+        depth = tf.expand_dims(depth, axis=-1)
         depth = 1. - (tf.clip_by_value(depth, self.minDepth, self.maxDepth) / self.maxDepth)
 
         return (img, depth)
-
 
 
     def get_trainData(self):
@@ -68,7 +72,7 @@ class DatasetGenerator:
         :return:
             train data
         """
-        self.train_data = self.train_data.shuffle(1024, reshuffle_each_iteration=True)
+        self.train_data = self.train_data.shuffle(1024)
         self.train_data = self.train_data.repeat()
         self.train_data = self.train_data.map(self.preprocess, num_parallel_calls=AUTO)
         self.train_data = self.train_data.padded_batch(self.batch_size)
