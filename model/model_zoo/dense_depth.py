@@ -19,7 +19,7 @@ class UpscaleBlock(Model):
 class Encoder(Model):
     def __init__(self):
         super(Encoder, self).__init__()                
-        self.base_model = DenseNet169(input_shape=(None, None, 3), include_top=False, weights='imagenet')   
+        self.base_model = DenseNet169(input_shape=(320, 320, 3), include_top=False, weights='imagenet')   
         print('Base model loaded {}'.format(DenseNet169.__name__))
         
         # Create encoder model that produce final features along with multiple intermediate features

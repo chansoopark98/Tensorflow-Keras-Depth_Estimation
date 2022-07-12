@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 
 # Set Convert to SavedMoel
 parser.add_argument("--saved_model_path", type=str,   help="저장된 모델 가중치 경로",
-                    default='your_model.h5')
+                    default='./checkpoints/0712/_0712_B16_E100_LR-0.001_320-320_train-10%_UNet_best_loss.h5')
 parser.add_argument("--batch_size",       type=int,    help="배치 사이즈값 설정",
                     default=16)
 parser.add_argument("--num_classes",      type=int,    help="분류할 클래수 개수 설정",
@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 dataset = DatasetGenerator(data_dir=args.dataset_dir, image_size=args.image_size, batch_size=args.batch_size)
 model = base_model(image_size=args.image_size, output_channel=args.num_classes)
-
+model.load_weights(args.saved_model_path)
 valid_data = dataset.get_validData()
 
 if __name__ == "__main__":
