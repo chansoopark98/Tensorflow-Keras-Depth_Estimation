@@ -15,6 +15,8 @@ class DatasetGenerator:
         self.image_size = image_size
         self.batch_size = batch_size
         self.train_data, self.valid_data = self.initial_load()
+        self.minDepth = 10
+        self.maxDepth = 1000
         # self.number_train = 47584
         # self.number_valid = 654
 
@@ -24,13 +26,23 @@ class DatasetGenerator:
         :return:
             train data, validation data
         """
-        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train[:10%]')
+        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train')
         valid_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='validation')
 
         self.number_valid = valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_train = train_data.reduce(0, lambda x, _: x + 1).numpy()
 
         return train_data, valid_data
+
+
+    def test_preprocess(self, sample):
+        img = sample['image']
+        depth = sample['depth']
+        depth = self.maxDepth / depth
+    
+        depth = 1. - (tf.clip_by_value(depth, self.minDepth, self.maxDepth) / self.maxDepth)
+
+        return img, depth
 
     def preprocess(self, sample):
         """
@@ -42,14 +54,9 @@ class DatasetGenerator:
         depth = sample['depth']
 
         depth = tf.expand_dims(depth, axis=-1)
-        img = tf.image.resize(img, (self.image_size[0], self.image_size[1]), tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, (self.image_size[0], self.image_size[1]), tf.image.ResizeMethod.BILINEAR)
 
         # Format
-        img = tf.image.convert_image_dtype(img / 255., dtype=tf.float32)
-        depth = tf.image.convert_image_dtype(depth/255., dtype=tf.float32)
-        depth = tf.math.divide_no_nan(1000., depth*1000)
-        depth /= 1000.
+        depth = 1. - (tf.clip_by_value(depth, self.minDepth, self.maxDepth) / self.maxDepth)
 
         return (img, depth)
 
@@ -79,3 +86,14 @@ class DatasetGenerator:
         self.valid_data = self.valid_data.padded_batch(self.batch_size).prefetch(AUTO)
 
         return self.valid_data
+
+    def get_testData(self):
+        """
+        Set test dataset ioterator
+        :return:
+            test data
+        """
+        self.test_data = self.valid_data.map(self.test_preprocess, num_parallel_calls=AUTO)
+        self.test_data = self.test_data.padded_batch(self.batch_size).prefetch(AUTO)
+
+        return self.test_data

@@ -93,7 +93,7 @@ class ModelConfiguration():
     
     def configuration_model(self):
         self.model = base_model(image_size=self.IMAGE_SIZE, output_channel=1)
-        # self.model.summary()
+        self.model.summary()
 
     
     def configuration_metric(self):

@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 
 dataset = DatasetGenerator(data_dir='./datasets/', image_size=(256, 256), batch_size=1)
 
-train_data = dataset.get_trainData()
-valid_data = dataset.get_validData()
+test_data = dataset.get_testData()
 
 if __name__ == "__main__":
-    for img, depth in train_data.take(100):
+    for img, depth in test_data.take(100):
         img = img[0]
+
+        depth = tf.cast(depth, tf.float32)
         depth = depth[0]
 
         # Format
