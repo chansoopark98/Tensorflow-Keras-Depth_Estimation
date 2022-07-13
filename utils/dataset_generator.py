@@ -43,7 +43,7 @@ class DatasetGenerator:
         img /= 255.
         
         depth = tf.expand_dims(depth, axis=-1)
-        depth = 1. - (tf.clip_by_value(depth, self.minDepth, self.maxDepth) / self.maxDepth)
+        depth /= 10
 
         return img, depth
 
@@ -61,7 +61,7 @@ class DatasetGenerator:
         img /= 255.
 
         depth = tf.expand_dims(depth, axis=-1)
-        depth = 1. - (tf.clip_by_value(depth, self.minDepth, self.maxDepth) / self.maxDepth)
+        depth /= 10
 
         return (img, depth)
 
