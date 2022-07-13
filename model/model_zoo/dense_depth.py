@@ -190,7 +190,5 @@ def HRNet(image_size):
     up2 = LeakyReLU(alpha=0.2)(up2)
 
     final = conv(up2, 1, 1, padding_='valid')
-
     model = Model(inputs=inputs, outputs=final)
-
     return model
