@@ -18,7 +18,7 @@ parser.add_argument("--saved_model_path", type=str,   help="저장된 모델 가
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name",
-                    default='B8_E100_LR-0.001_320-320_train_HRNet')
+                    default='B8_E100_LR-0.001_512-512_train_UNet')
 parser.add_argument("--batch_size",       type=int,    help="배치 사이즈값 설정",
                     default=8)
 parser.add_argument("--epoch",            type=int,    help="에폭 설정",
@@ -30,7 +30,7 @@ parser.add_argument("--weight_decay",     type=float,  help="Weight Decay 설정
 parser.add_argument("--num_classes",      type=int,    help="분류할 클래수 개수 설정",
                     default=1)
 parser.add_argument("--image_size",       type=tuple,  help="조정할 이미지 크기 설정",
-                    default=(480, 640))
+                    default=(512, 512))
 parser.add_argument("--optimizer",        type=str,    help="Optimizer",
                     default='adam')
 parser.add_argument("--use_weightDecay",  type=bool,   help="weightDecay 사용 유무",

@@ -2,7 +2,7 @@ from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 from keras import mixed_precision
 from model.model_builder import base_model
 from utils.dataset_generator import DatasetGenerator
-from model.loss import depth_loss_function
+from model.loss import DepthEstimationLoss
 import os
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -77,7 +77,7 @@ class ModelConfiguration():
         if self.OPTIMIZER_TYPE == 'sgd':
             self.optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'adam':
-            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR, amsgrad=True)
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'radam':
             self.optimizer =  tfa.optimizers.RectifiedAdam(learning_rate=self.INIT_LR,
                                                     weight_decay=0.00001,
@@ -109,9 +109,11 @@ class ModelConfiguration():
         self.configuration_model()
         self.configuration_metric()
 
+        loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE, distribute_mode=self.DISTRIBUTION_MODE)
+
         self.model.compile(
             optimizer=self.optimizer,
-            loss=depth_loss_function,
+            loss=loss.distribute_depth_loss,
             metrics=self.metrics
             )
 

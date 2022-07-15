@@ -25,7 +25,7 @@ class DatasetGenerator:
         :return:
             train data, validation data
         """
-        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train[:20%]')
+        train_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='train')
         valid_data = tfds.load(name='nyu_depth_v2', data_dir=self.data_dir, split='validation')
 
         self.number_valid = valid_data.reduce(0, lambda x, _: x + 1).numpy()
@@ -57,7 +57,12 @@ class DatasetGenerator:
         img = tf.cast(sample['image'], tf.float32)
         depth = sample['depth']
 
+        depth = tf.expand_dims(depth, axis=-1)
+        img = tf.image.resize(img, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
 
+        print(img.shape)
+        print(depth.shape)
         img /= 255.
 
         depth = tf.expand_dims(depth, axis=-1)
