@@ -37,7 +37,7 @@ def depth_estimation_loss(y_true, y_pred, max_depth=1.0):
     smoothness_y = dy_pred * weights_y
     
     depth_smoothness_loss = tf.reduce_mean(tf.math.abs(smoothness_x)) + tf.reduce_mean(
-        tf.mathabs(smoothness_y)
+        tf.math.abs(smoothness_y)
     )
 
     # Structural similarity (SSIM) index
