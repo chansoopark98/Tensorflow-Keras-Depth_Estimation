@@ -1,5 +1,5 @@
 import tensorflow as tf
-import tensorflow.keras.backend as K
+K = tf.keras.backend
 
 ssim_loss_weight = 0.85
 l1_loss_weight = 0.1

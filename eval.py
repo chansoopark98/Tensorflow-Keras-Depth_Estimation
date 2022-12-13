@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utils.dataset_generator import DatasetGenerator
+from utils.load_datasets import DatasetGenerator
 from utils.plot_generator import plot_generator
 from model.model_builder import base_model
 import matplotlib.pyplot as plt

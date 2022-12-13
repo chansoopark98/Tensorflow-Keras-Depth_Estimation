@@ -1,142 +1,212 @@
-from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
-from keras import mixed_precision
-from model.model_builder import base_model
-from utils.dataset_generator import DatasetGenerator
-from model.loss import DepthEstimationLoss
-import os
-import tensorflow as tf
 import tensorflow_addons as tfa
-import numpy as np
+import tensorflow as tf
+import argparse
+import os
+from utils.load_datasets import GenerateDatasets
+from model.model_builder import ModelBuilder
+from model.loss import DepthEstimationLoss
 
 
-class ModelConfiguration():
-    def __init__(self, args, mirrored_strategy=None):
+class ModelConfiguration(GenerateDatasets):
+    def __init__(self, args: argparse, mirrored_strategy: object = None):
+        """
+        Args:
+            args (argparse): Training options (argparse).
+            mirrored_strategy (tf.distribute): tf.distribute.MirroredStrategy() with Session.
+        """
         self.args = args
         self.mirrored_strategy = mirrored_strategy
+        self.check_directory(dataset_dir=args.dataset_dir,
+                             checkpoint_dir=args.checkpoint_dir, model_name=args.model_name)
+        self.configuration_args()
 
-    def configuration_dataset(self):
-        self.train_dataset_config = DatasetGenerator(self.DATASET_DIR, self.IMAGE_SIZE, self.BATCH_SIZE)
-        self.valid_dataset_config = DatasetGenerator(self.DATASET_DIR, self.IMAGE_SIZE, self.BATCH_SIZE)
-
-        self.train_data = self.train_dataset_config.get_trainData()
-        self.valid_data = self.valid_dataset_config.get_validData()
-
-        self.steps_per_epoch = self.train_dataset_config.number_train // self.BATCH_SIZE
-        self.validation_steps = self.valid_dataset_config.number_valid // self.BATCH_SIZE
-
-        if self.DISTRIBUTION_MODE:
-            self.train_data = self.mirrored_strategy.experimental_distribute_dataset(self.train_data)
-            self.valid_data = self.mirrored_strategy.experimental_distribute_dataset(self.valid_data)   
+        super().__init__(data_dir=self.DATASET_DIR,
+                         image_size=self.IMAGE_SIZE,
+                         batch_size=self.BATCH_SIZE,
+                         dataset_name=args.dataset_name
+                         )
 
 
-    def __set_args(self):
+    def check_directory(self, dataset_dir: str, checkpoint_dir: str, model_name: str) -> None:
+        """
+        Args:
+            dataset_dir    (str) : Tensorflow dataset directory.
+            checkpoint_dir (str) : Directory to store training weights.
+            model_name     (str) : Model name to save.
+        """
+        os.makedirs(dataset_dir, exist_ok=True)
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        os.makedirs(checkpoint_dir + model_name, exist_ok=True)
+    
+    def get_model_hyparameter_prefix(self, args) -> str:
+        batch_size = str(args.batch_size)
+        epoch = str(args.epoch)
+        lr = str(args.lr)
+        image_size = str(args.image_size[0])
+        optimizer = str(args.optimizer)
+        
+        if args.multi_gpu:
+            gpu_type = 'multi-gpu'
+        else:
+            gpu_type = 'single-gpu'
+            
+        prefix = 'Bs-{0}_Ep-{1}_Lr-{2}_ImSize-{3}_Opt-{4}_{5}'.format(batch_size,
+                                                                   epoch,
+                                                                   lr,
+                                                                   image_size,
+                                                                   optimizer,
+                                                                   gpu_type)
+        return prefix
+
+    def configuration_args(self):
+        """
+            Set training variables from argparse's arguments 
+        """
         self.MODEL_PREFIX = self.args.model_prefix
         self.WEIGHT_DECAY = self.args.weight_decay
-        self.NUM_CLASSES = self.args.num_classes
         self.OPTIMIZER_TYPE = self.args.optimizer
         self.BATCH_SIZE = self.args.batch_size
         self.EPOCHS = self.args.epoch
         self.INIT_LR = self.args.lr
-        self.SAVE_MODEL_NAME = self.args.model_name + '_' + self.args.model_prefix
+        self.SAVE_MODEL_NAME = self.get_model_hyparameter_prefix(self.args) + '_' + self.args.model_name + '_' +  self.MODEL_PREFIX
         self.DATASET_DIR = self.args.dataset_dir
+        self.DATASET_NAME = self.args.dataset_name
         self.CHECKPOINT_DIR = self.args.checkpoint_dir
         self.TENSORBOARD_DIR = self.args.tensorboard_dir
         self.IMAGE_SIZE = self.args.image_size
-        self.USE_WEIGHT_DECAY = self.args.use_weightDecay
+        self.USE_WEIGHT_DECAY = self.args.use_weight_decay
         self.MIXED_PRECISION = self.args.mixed_precision
         self.DISTRIBUTION_MODE = self.args.multi_gpu
         if self.DISTRIBUTION_MODE:
             self.BATCH_SIZE *= 2
 
-        os.makedirs(self.DATASET_DIR, exist_ok=True)
-        os.makedirs(self.CHECKPOINT_DIR, exist_ok=True)
-        os.makedirs(self.CHECKPOINT_DIR + self.args.model_name, exist_ok=True)
+    def configuration_dataset(self) -> None:
+        """
+            Configure the dataset. Train and validation dataset is inherited from the parent class and used.
+        """
+        # Wrapping tf.data generator
+        self.train_data = self.get_trainData(train_data=self.train_data)
+        self.valid_data = self.get_validData(valid_data=self.valid_data)
+    
+        # Calculate training and validation steps
+        self.steps_per_epoch = self.number_train // self.BATCH_SIZE
+        self.validation_steps = self.number_valid // self.BATCH_SIZE
 
+        # Wrapping tf.data generator if when use multi-gpu training
+        if self.DISTRIBUTION_MODE:
+            self.train_data = self.mirrored_strategy.experimental_distribute_dataset(self.train_data)
+            self.valid_data = self.mirrored_strategy.experimental_distribute_dataset(self.valid_data)   
 
     def __set_callbacks(self):
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=3, min_lr=1e-5, verbose=1)
+        """
+            Set the keras callback of model.fit.
 
-        checkpoint_val_loss = ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name+ '/_' + self.SAVE_MODEL_NAME + '_best_loss.h5',
-                                            monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
-        checkpoint_val_iou = ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name +'/_' + self.SAVE_MODEL_NAME + '_best_iou.h5',
-                                            monitor='val_m_io_u', save_best_only=True, save_weights_only=True,
-                                            verbose=1, mode='max')
+            For some metric callbacks, the name of the custom metric may be different and may not be valid,
+            so you must specify the name of the custom metric.
+        """
+        # Set training keras callbacks
+        checkpoint_val_loss = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_loss.h5',
+                                              monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
 
-        tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR +'depth_estimation/' + self.MODEL_PREFIX, write_graph=True, write_images=True)
+        tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR + 'detection/' +
+                                  self.MODEL_PREFIX, write_graph=True, write_images=True)
 
         polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.INIT_LR,
-                                                                decay_steps=self.EPOCHS,
-                                                                end_learning_rate=self.INIT_LR * 0.1, power=0.9)
+                                                                  decay_steps=self.EPOCHS,
+                                                                  end_learning_rate=0, power=0.9)
 
-        lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay,verbose=1)
-
-        self.callback = [checkpoint_val_iou, checkpoint_val_loss,  tensorboard, lr_scheduler]
-
-
+        lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
+        
+        # If you wanna need another callbacks, please add here.
+        self.callback = [checkpoint_val_loss,  tensorboard, lr_scheduler]
+    
     def __set_optimizer(self):
+        """
+            Configure the optimizer for backpropagation calculations.
+        """
         if self.OPTIMIZER_TYPE == 'sgd':
             self.optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'adam':
             self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'radam':
-            self.optimizer =  tfa.optimizers.RectifiedAdam(learning_rate=self.INIT_LR,
-                                                    weight_decay=0.00001,
-                                                    total_steps=int(self.train_dataset_config.number_train / (self.BATCH_SIZE / self.EPOCHS)),
-                                                    warmup_proportion=0.1,
-                                                    min_lr=0.0001)
-            
+            self.optimizer = tfa.optimizers.RectifiedAdam(learning_rate=self.INIT_LR,
+                                                          weight_decay=0.00001,
+                                                          total_steps=int(
+                                                          self.number_train / (self.BATCH_SIZE / self.EPOCHS)),
+                                                          warmup_proportion=0.1,
+                                                          min_lr=0.0001)
+        elif self.OPTIMIZER_TYPE == 'adamW':
+            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.004)
         if self.MIXED_PRECISION:
-            policy = mixed_precision.Policy('mixed_float16', loss_scale=1024)
-            mixed_precision.set_policy(policy)
-            self.optimizer = mixed_precision.LossScaleOptimizer(self.optimizer, loss_scale='dynamic')
+            tf.keras.mixed_precision.set_global_policy('mixed_float16')
+            # Wrapping optimizer by mixed precision
+            self.optimizer = tf.keras.mixed_precision.LossScaleOptimizer(self.optimizer)
 
-    
-    def configuration_model(self):
-        self.model = base_model(image_size=self.IMAGE_SIZE, output_channel=1)
-        self.model.summary()
+    def __set_metrics(self):
+        metrics = ['mse']
+        return metrics
 
-    
-    def configuration_metric(self):
-        # mIoU = MIoU(self.NUM_CLASSES)
-        self.metrics = None
+    def __configuration_model(self):
+        """
+            Build a deep learning model.
+        """
+        # Get instance model builder
+        model_builder = ModelBuilder(image_size=self.IMAGE_SIZE,
+                                  use_weight_decay=self.USE_WEIGHT_DECAY,
+                                  weight_decay=self.WEIGHT_DECAY,
+                                  is_tunning=False)
 
+        # Build model by model name
+        model = model_builder.build_model()
+
+        return model
 
     def train(self):
-        self.__set_args()
-        self.__set_callbacks()
+        """
+            Compile all configuration settings required for training.
+            If the custom metric name is different in the __set_callbacks function,
+            the update may not be possible, so please check the name.
+        """
         self.configuration_dataset()
+        self.metrics = self.__set_metrics()
         self.__set_optimizer()
-        self.configuration_model()
-        self.configuration_metric()
+        self.__set_callbacks()
+        self.model = self.__configuration_model()
+  
+        
+        # loss_obj= Total_loss(num_classes=self.num_classes)
+        # self.loss = loss_obj.detection_loss
 
-        loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE, distribute_mode=self.DISTRIBUTION_MODE)
+        self.loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE).depth_loss
 
-        self.model.compile(
-            optimizer=self.optimizer,
-            loss=loss.distribute_depth_loss,
-            metrics=self.metrics
-            )
+        self.model.compile(optimizer=self.optimizer,
+                           loss=self.loss,
+                           metrics=self.metrics)
 
         # self.model.summary()
 
         self.model.fit(self.train_data,
-                            validation_data=self.valid_data,
-                            steps_per_epoch=self.steps_per_epoch,
-                            validation_steps=self.validation_steps,
-                            epochs=self.EPOCHS,
-                            callbacks=self.callback)
-
-        self.model.save_weights(self.CHECKPOINT_DIR + '_' + self.SAVE_MODEL_NAME + '_final_loss.h5')
+                       validation_data=self.valid_data,
+                       steps_per_epoch=self.steps_per_epoch,
+                       validation_steps=self.validation_steps,
+                       epochs=self.EPOCHS,
+                       callbacks=self.callback)
 
 
     def saved_model(self):
-        self.__set_args()
-        self.configuration_model()
+        """
+            Convert it to a graph model (.pb) using the learned weights.
+        """
+        self.model = ModelBuilder(image_size=self.IMAGE_SIZE,
+                                  num_classes=self.num_classes).build_model()
         self.model.load_weights(self.args.saved_model_path)
         export_path = os.path.join(self.CHECKPOINT_DIR, 'export_path', '1')
+        
         os.makedirs(export_path, exist_ok=True)
         self.export_path = export_path
+
         self.model.summary()
+
         tf.keras.models.save_model(
             self.model,
             self.export_path,
@@ -147,35 +217,3 @@ class ModelConfiguration():
             options=None
         )
         print("save model clear")
-    
-    
-    def convert_to_trt(self):
-        
-        
-        # self.model.load_weights(self.args.saved_model_path)
-        self.IMAGE_SIZE = (224, 224)
-        input_saved_model_dir = './checkpoints/export_path/1/'
-        output_saved_model_dir = './checkpoints/export_path_trt/1/'
-
-        os.makedirs(output_saved_model_dir, exist_ok=True)
-
-        params = tf.experimental.tensorrt.ConversionParams(
-                                precision_mode='FP16',
-                                maximum_cached_engines=16)
-        converter = tf.experimental.tensorrt.Converter(
-            input_saved_model_dir=input_saved_model_dir, conversion_params=params, use_dynamic_shape=False)
-        converter.convert()
-
-        # Define a generator function that yields input data, and use it to execute
-        # the graph to build TRT engines.
-        def my_input_fn():
-            
-            inp1 = tf.random.normal((1, 224, 224, 3), dtype=tf.float32)
-            inp2 = np.random.normal(size=(1,self.IMAGE_SIZE[0], self.IMAGE_SIZE[1], 3)).astype(np.float32)
-            yield [inp1]
-        
-        converter.build(input_fn=my_input_fn)  # Generate corresponding TRT engines
-        converter.save(output_saved_model_dir)  # Generated engines will be saved.
-
-
-        
