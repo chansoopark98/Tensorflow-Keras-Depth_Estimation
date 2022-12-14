@@ -25,33 +25,19 @@ class CSNetHRLite(object):
 
         # Set model hyper parameters value
         self.config = {
-            'os4_num_layers': 1,
+            'stem_units': 16,
+            'os2_expand': 1,
+            'os2_units': 24,
+            'os4_expand': 3,
             'os4_units': 48,
-
-            'os8_num_layers': 1,
-            'os8_units': 64,
-
-            'os16_num_layers': 2,
-            'os16_units': 48,
-
-            'os32_num_layers': 2,
-            'os32_units': 96,
-
-            'os64_num_layers': 3,
-            'os64_units': 96,
-
-            'os128_num_layers': 3,
-            'os128_units': 112,
-
-            'os256_num_layers': 3,
-            'os256_units': 144,
+            'os8_expand': 3,
+            'os8_units': 56,
+            'os16_expand': 6,
+            'os16_units': 144,
+            'os32_expand': 6,
+            'os32_units': 176
         }
 
-        self.detection_config = {
-            'head_units': 64,
-            'head_layers': 2,
-        }
-            
     def correct_pad(self, inputs, kernel_size):
         img_dim = 2 if tf.keras.backend.image_data_format() == "channels_first" else 1
         input_size = tf.keras.backend.int_shape(inputs)[img_dim : (img_dim + 2)]

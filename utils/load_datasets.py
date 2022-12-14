@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from utils.augmentations import Augmentation
 from typing import Union
 AUTO = tf.data.experimental.AUTOTUNE
 
@@ -51,6 +52,7 @@ class GenerateDatasets(DataLoadHandler):
         self.batch_size = batch_size
         self.dataset_name = dataset_name
         self.is_tunning = is_tunning
+        self.augmentations = Augmentation(image_size=self.image_size, max_crop_scale=1.3)
         super().__init__(data_dir=self.data_dir, dataset_name=self.dataset_name)
 
 
@@ -61,35 +63,54 @@ class GenerateDatasets(DataLoadHandler):
         :return:
             RGB image(H,W,3), Depth map(H,W,1)
         """
-        img = tf.cast(sample['image'], tf.float32)
-        depth = sample['depth']
-
+        image = tf.cast(sample['image'], tf.float32)
+        depth = tf.cast(sample['depth'], tf.float32)
         depth = tf.expand_dims(depth, axis=-1)
-        img = tf.image.resize(img, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         # normalize image
-        img /= 255.
+        image /= 255.
 
         # normalize depth map
-        # depth = tf.expand_dims(depth, axis=-1)
-        # depth /= 10
+        depth /= 10.
 
-        return (img, depth)
+        return (image, depth)
+
+    @tf.function
+    def preprocess_valid(self, sample) -> Union[tf.Tensor, tf.Tensor]:
+        """
+        preprocessing  valid image
+        :return:
+            RGB image(H,W,3), Depth map(H,W,1)
+        """
+        image = tf.cast(sample['image'], tf.float32)
+        depth = tf.cast(sample['depth'], tf.float32)
+        depth = tf.expand_dims(depth, axis=-1)
+
+        image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+
+        # normalize image
+        image /= 255.
+
+        # normalize depth map
+        depth /= 10.
+
+        return (image, depth)
     
     
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
-        if tf.random.uniform([]) > 0.3:
-            image = tf.image.random_jpeg_quality(image, 15, 100)
-        if tf.random.uniform([]) > 0.1:
-            image = tf.image.random_saturation(image, lower=0.5, upper=1.5) # 랜덤 채도
-        if tf.random.uniform([]) > 0.1:
-            image = tf.image.random_brightness(image, max_delta=0.005) # 랜덤 밝기
-        if tf.random.uniform([]) > 0.1:
-            image = tf.image.random_contrast(image, lower=0.2, upper=0.9) # 랜덤 대비
-        if tf.random.uniform([]) > 0.1:
-            image = tf.image.random_hue(image, max_delta=0.2) # 랜덤 휴 트랜스폼
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_crop(image=image, depth=depth)
+        else:
+            image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+            depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_rotate(image=image, depth=depth)
+
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
 
         return (image, depth)
 
@@ -97,7 +118,7 @@ class GenerateDatasets(DataLoadHandler):
     def get_trainData(self, train_data):
         train_data = train_data.shuffle(self.batch_size * 64)
         train_data = train_data.map(self.preprocess, num_parallel_calls=AUTO)
-        # train_data = train_data.map(self.augmentation, num_parallel_calls=AUTO)
+        train_data = train_data.map(self.augmentation, num_parallel_calls=AUTO)
         train_data = train_data.padded_batch(self.batch_size)
         train_data = train_data.prefetch(AUTO)
         if self.is_tunning is not True:
@@ -106,14 +127,14 @@ class GenerateDatasets(DataLoadHandler):
 
 
     def get_validData(self, valid_data):
-        valid_data = valid_data.map(self.preprocess, num_parallel_calls=AUTO)
+        valid_data = valid_data.map(self.preprocess_valid, num_parallel_calls=AUTO)
         valid_data = valid_data.padded_batch(self.batch_size).prefetch(AUTO)
 
         return valid_data
 
 
     def get_testData(self, test_data):
-        test_data = test_data.map(self.preprocess)
+        test_data = test_data.map(self.preprocess_valid)
         test_data = test_data.batch(self.batch_size).prefetch(AUTO)
 
         return test_data

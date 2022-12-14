@@ -8,6 +8,8 @@ checkpoints/
 # C extensions
 *.so
 
+keras_tuner/
+
 # Distribution / packaging
 .Python
 build/

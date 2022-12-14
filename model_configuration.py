@@ -108,12 +108,12 @@ class ModelConfiguration(GenerateDatasets):
         checkpoint_val_loss = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_loss.h5',
                                               monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
 
-        tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR + 'detection/' +
+        tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR + 'train/' +
                                   self.MODEL_PREFIX, write_graph=True, write_images=True)
 
         polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.INIT_LR,
                                                                   decay_steps=self.EPOCHS,
-                                                                  end_learning_rate=0, power=0.9)
+                                                                  end_learning_rate=self.INIT_LR * 0.1, power=0.9)
 
         lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
         
@@ -136,7 +136,7 @@ class ModelConfiguration(GenerateDatasets):
                                                           warmup_proportion=0.1,
                                                           min_lr=0.0001)
         elif self.OPTIMIZER_TYPE == 'adamW':
-            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.004)
+            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.005)
         if self.MIXED_PRECISION:
             tf.keras.mixed_precision.set_global_policy('mixed_float16')
             # Wrapping optimizer by mixed precision
@@ -158,6 +158,7 @@ class ModelConfiguration(GenerateDatasets):
 
         # Build model by model name
         model = model_builder.build_model()
+        model.summary()
 
         return model
 
@@ -177,7 +178,7 @@ class ModelConfiguration(GenerateDatasets):
         # loss_obj= Total_loss(num_classes=self.num_classes)
         # self.loss = loss_obj.detection_loss
 
-        self.loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE).depth_loss
+        self.loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE, distribute_mode=self.DISTRIBUTION_MODE).depth_loss
 
         self.model.compile(optimizer=self.optimizer,
                            loss=self.loss,

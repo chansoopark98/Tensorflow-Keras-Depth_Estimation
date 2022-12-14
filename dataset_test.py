@@ -1,11 +1,11 @@
 import tensorflow as tf
-from utils.load_datasets import DatasetGenerator
+from utils.load_datasets import GenerateDatasets
 from utils.plot_generator import plot_generator
 import matplotlib.pyplot as plt
 
-dataset = DatasetGenerator(data_dir='./datasets/', image_size=(256, 256), batch_size=1)
+dataset = GenerateDatasets(data_dir='./datasets/', image_size=(256, 256), batch_size=1, dataset_name='nyu_depth_v2')
 
-test_data = dataset.get_testData()
+test_data = dataset.get_testData(test_data=dataset.test_data)
 
 if __name__ == "__main__":
     for img, depth in test_data.take(100):
