@@ -136,7 +136,7 @@ class ModelConfiguration(GenerateDatasets):
                                                           warmup_proportion=0.1,
                                                           min_lr=0.0001)
         elif self.OPTIMIZER_TYPE == 'adamW':
-            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.005)
+            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.001)
         if self.MIXED_PRECISION:
             tf.keras.mixed_precision.set_global_policy('mixed_float16')
             # Wrapping optimizer by mixed precision
