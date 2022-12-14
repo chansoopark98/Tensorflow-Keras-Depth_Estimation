@@ -1,10 +1,12 @@
 import tensorflow as tf
-from tensorflow import keras
+from model.model_zoo.CSNet_HR_lite import CSNetHRLite
+from model.loss import DepthEstimationLoss
+import keras_tuner
 from utils.load_datasets import GenerateDatasets
 tf.keras.backend.clear_session()
-
+    
 image_size = (256, 256)
-batch_size = 16
+batch_size = 32
 learning_rate = 0.001
 epoch = 5
 max_trials = 20
@@ -13,14 +15,11 @@ weight_decay = 0.0001
 
 model_name = 'csnet_tunning_test'
 
-kernel_initializer = keras.initializers.VarianceScaling(scale=2.0, mode="fan_out", distribution="truncated_normal")
-
-
 data_loader = GenerateDatasets(data_dir='./datasets/',
-                                 image_size=image_size,
-                                 batch_size=batch_size,
-                                 dataset_name='nyu_depth_v2',
-                                 is_tunning=True)
+                                image_size=image_size,
+                                batch_size=batch_size,
+                                dataset_name='nyu_depth_v2',
+                                is_tunning=True)
 
 # Concatenate dataset (train+valid)
 train_data = data_loader.train_data
@@ -34,15 +33,15 @@ steps_per_epoch = data_loader.number_train // batch_size
 validation_steps = data_loader.number_valid // batch_size
 
 # callbacks
-tensorboard = tf.keras.callbacks.TensorBoard(log_dir='./tensorboard/' + 'detection_tunning/' +
-                                  model_name, write_graph=True, write_images=True)
+tensorboard = tf.keras.callbacks.TensorBoard(log_dir='./tensorboard/' + 'model_tune/' +
+                                model_name, write_graph=True, write_images=True)
 
 polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=learning_rate,
                             decay_steps=epoch,
                             end_learning_rate=learning_rate * 0.9, power=0.5)
 
 lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
-early_stopping = tf.keras.callbacks.EarlyStopping('val_loss', patience=1)
+early_stopping = tf.keras.callbacks.EarlyStopping('val_loss', patience=2)
 
 callback = [tensorboard, lr_scheduler, early_stopping]
 
@@ -56,20 +55,21 @@ elif optimizer_type == 'rmsprop':
 else:
     raise print('unknown optimizer type')
 
-accuracy_metric = tf.keras.metrics.MeanSquaredError()
-metrics = [accuracy_metric]
-
 # mixed precision
 tf.keras.mixed_precision.set_global_policy('mixed_float16')
 optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
 input_tensor = tf.keras.Input(shape=(*image_size, 3))
 
-from model.model_zoo.CSNet_HR_lite import CSNetHRLite
-import keras_tuner
+
 
 def build_model(hp: keras_tuner.HyperParameters()):
-    from model.loss import DepthEstimationLoss
+
+    accuracy_metric = tf.keras.metrics.RootMeanSquaredError()
+    metrics = [accuracy_metric]
+
+
+
     model = CSNetHRLite(image_size=image_size, classifier_activation=None,                        
                         use_multi_gpu=False).build_model(hp)
     loss = DepthEstimationLoss(global_batch_size=batch_size).depth_loss
@@ -82,12 +82,21 @@ def build_model(hp: keras_tuner.HyperParameters()):
 
 
 tuner = keras_tuner.BayesianOptimization(hypermodel=build_model,
-                                         objective='val_loss',
-                                         max_trials=max_trials,
-                                         overwrite=True,
-                                         directory='keras_tuner',
-                                         project_name='csnet-depth-estimation'
-                                         )
+                                        objective='val_loss',
+                                        max_trials=max_trials,
+                                        overwrite=True,
+                                        distribution_strategy=tf.distribute.MirroredStrategy(),
+                                        directory='keras_tuner',
+                                        project_name='csnet-depth-estimation'
+                                        )
+# tuner = keras_tuner.Hyperband(hypermodel=build_model,
+#                               objective='val_loss',
+#                               max_epochs=epoch, factor=3,
+#                               distribution_strategy=tf.distribute.MirroredStrategy(),
+#                               overwrite=True,
+#                               directory='keras_tuner',
+#                               project_name='csnet-depth-estimation')
+
 print('search model')
 tuner.search(train_data, epochs=epoch, validation_data=valid_data, callbacks=callback)
 tuner.search_space_summary()

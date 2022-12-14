@@ -143,7 +143,8 @@ class ModelConfiguration(GenerateDatasets):
             self.optimizer = tf.keras.mixed_precision.LossScaleOptimizer(self.optimizer)
 
     def __set_metrics(self):
-        metrics = ['mse']
+        rmse_metric = tf.keras.metrics.RootMeanSquaredError()
+        metrics = [rmse_metric]
         return metrics
 
     def __configuration_model(self):

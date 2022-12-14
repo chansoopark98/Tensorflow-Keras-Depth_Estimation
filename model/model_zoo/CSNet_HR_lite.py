@@ -1,5 +1,4 @@
 import tensorflow as tf
-from keras.utils import data_utils
 
 class CSNetHRLite(object):
     def __init__(self, image_size: tuple,
@@ -68,8 +67,8 @@ class CSNetHRLite(object):
         return tf.keras.layers.Multiply()([x, self.hard_sigmoid(x)])
 
 
-    def stem_block(self, x: tf.Tensor, filters: int = 16):
-        x = tf.keras.layers.Conv2D(filters=filters,
+    def stem_block(self, x: tf.Tensor, in_filters: int = 16):
+        x = tf.keras.layers.Conv2D(filters=in_filters,
                                    kernel_size=3,
                                    strides=(2, 2),
                                    padding="same",
@@ -82,11 +81,11 @@ class CSNetHRLite(object):
         x = tf.keras.layers.Activation('relu', name='stem_relu')(x)
         return x
 
-    def conv_block(self, x: tf.Tensor, filters: int, expand_ratio: int,
-                   kernel_size: int, stride: int, block_id: int):
+    def conv_block(self, x: tf.Tensor, in_filters: int, out_filters: int, expand_ratio: int,
+                   kernel_size: int, stride: int, block_id: int, dilation_rate: int = 1):
         shortcut_tensor = x
-        input_filters = tf.keras.backend.int_shape(x)[-1]
-        x = tf.keras.layers.Conv2D(filters=filters * expand_ratio,
+
+        x = tf.keras.layers.Conv2D(filters=in_filters * expand_ratio,
                                    kernel_size=(1, 1),
                                    strides=(1, 1),
                                    padding='same',
@@ -105,13 +104,14 @@ class CSNetHRLite(object):
         x = tf.keras.layers.DepthwiseConv2D(kernel_size=kernel_size,
                                             strides=stride, padding="same" if stride == 1 else "valid",
                                             depthwise_initializer=self.kernel_initializer,
+                                            dilation_rate=(dilation_rate, dilation_rate),
                                             use_bias=False, name='depthwise_conv_{0}'.format(block_id))(x)
         x = self.batch_norm(epsilon=self.EPSILON,
                             momentum=self.MOMENTUM,
                             name='depthwise_bn_{0}'.format(block_id))(x)
         x = tf.keras.layers.Activation(self.activation, name='depthwise_activation_{0}'.format(block_id))(x)
 
-        x = tf.keras.layers.Conv2D(filters=filters,
+        x = tf.keras.layers.Conv2D(filters=out_filters,
                                    kernel_size=(1, 1),
                                    strides=(1, 1),
                                    padding='same',
@@ -122,14 +122,15 @@ class CSNetHRLite(object):
                             momentum=self.MOMENTUM,
                             name='conv_bn_{0}'.format(block_id))(x)
 
-        if input_filters == filters and stride == 1:
+        if in_filters == out_filters and stride == 1:
             # residual connection
+            print(block_id, 'residual connection')
             x = tf.keras.layers.Add(name='add_{0}'.format(block_id))([shortcut_tensor, x])
         return x
 
-    def deconv_block(self, x: tf.Tensor, filters: int, expand_ratio: int,
+    def deconv_block(self, x: tf.Tensor, in_filters: int, out_filters: int, expand_ratio: int,
                    kernel_size: int, block_id: int):
-        x = tf.keras.layers.Conv2D(filters=filters * expand_ratio,
+        x = tf.keras.layers.Conv2D(filters=in_filters * expand_ratio,
                                    kernel_size=(1, 1),
                                    strides=(1, 1),
                                    padding='same',
@@ -141,8 +142,6 @@ class CSNetHRLite(object):
                             name='deconv_expand_bn_{0}'.format(block_id))(x)
         x = tf.keras.layers.Activation(self.activation, name='deconv_expand_activation_{0}'.format(block_id))(x)
 
-        x = tf.keras.layers.UpSampling2D((2, 2), name='deconv_nearest_upsample_{0}'.format(block_id))(x)
-
         x = tf.keras.layers.DepthwiseConv2D(kernel_size=kernel_size,
                                             strides=1, padding="same",
                                             depthwise_initializer=self.kernel_initializer,
@@ -152,7 +151,7 @@ class CSNetHRLite(object):
                             name='deconv_depthwise_bn_{0}'.format(block_id))(x)
         x = tf.keras.layers.Activation(self.activation, name='deconv_depthwise_activation_{0}'.format(block_id))(x)
 
-        x = tf.keras.layers.Conv2D(filters=filters,
+        x = tf.keras.layers.Conv2D(filters=out_filters,
                                    kernel_size=(1, 1),
                                    strides=(1, 1),
                                    padding='same',
@@ -162,12 +161,14 @@ class CSNetHRLite(object):
         x = self.batch_norm(epsilon=self.EPSILON,
                             momentum=self.MOMENTUM,
                             name='deconv_conv_bn_{0}'.format(block_id))(x)
+
+        x = tf.keras.layers.UpSampling2D((2, 2), name='deconv_nearest_upsample_{0}'.format(block_id))(x)
         return x
     
-    def fusion_block(self, x: tf.Tensor, skip: tf.Tensor, filters: int,
+    def fusion_block(self, x: tf.Tensor, skip: tf.Tensor, in_filters: int,
                    kernel_size: int, block_id: int):
         x = tf.keras.layers.Concatenate(name='fusion_concat_{0}'.format(block_id))([x, skip])
-        x = tf.keras.layers.Conv2D(filters=filters,
+        x = tf.keras.layers.Conv2D(filters=in_filters,
                                    kernel_size=(1, 1),
                                    strides=(1, 1),
                                    padding='same',
@@ -190,6 +191,63 @@ class CSNetHRLite(object):
 
         return x
 
+    def aspp(self, x: tf.Tensor, in_filters: int, out_filters: int) -> tf.Tensor:
+        """Image Feature branch"""
+        # b4
+        b4 = tf.keras.layers.GlobalAveragePooling2D(name='aspp_b4_gap')(x)
+        b4_shape = tf.keras.backend.int_shape(b4)
+        b4 = tf.keras.layers.Reshape((1, 1, b4_shape[1]), name='aspp_b4_reshape')(b4)
+        b4 = tf.keras.layers.Conv2D(filters=in_filters,
+                                   kernel_size=(1, 1),
+                                   strides=(1, 1),
+                                   padding='same',
+                                   use_bias=False,
+                                   kernel_initializer=self.kernel_initializer,
+                                   name='aspp_b4_conv')(b4)
+        b4 = self.batch_norm(epsilon=self.EPSILON,
+                            momentum=self.MOMENTUM,
+                            name='aspp_b4_bn')(b4)
+        
+        b4 = tf.keras.layers.Activation(self.activation, name='aspp_b4_activation')(b4)
+        
+        size_before = tf.keras.backend.int_shape(x)
+        b4 = tf.keras.layers.experimental.preprocessing.Resizing(*size_before[1:3],
+                                                                 interpolation="bilinear",
+                                                                 name='aspp_b4_resize')(b4)
+        
+        # b0
+        b0 = tf.keras.layers.Conv2D(filters=in_filters,
+                                   kernel_size=(1, 1),
+                                   strides=(1, 1),
+                                   padding='same',
+                                   use_bias=False,
+                                   kernel_initializer=self.kernel_initializer,
+                                   name='aspp_b0_conv')(x)
+        b0 = self.batch_norm(epsilon=self.EPSILON,
+                            momentum=self.MOMENTUM,
+                            name='aspp_b0_bn')(b0)
+        b0 = tf.keras.layers.Activation(self.activation, name='aspp_b0_activation')(b0)
+
+        b1 = self.conv_block(x=x, in_filters=in_filters, out_filters=out_filters, expand_ratio=1, kernel_size=3, stride=1, block_id='aspp_b1', dilation_rate=3)
+        b2 = self.conv_block(x=x, in_filters=in_filters, out_filters=out_filters, expand_ratio=1, kernel_size=3, stride=1, block_id='aspp_b2', dilation_rate=5)
+        b3 = self.conv_block(x=x, in_filters=in_filters, out_filters=out_filters, expand_ratio=1, kernel_size=3, stride=1, block_id='aspp_b3', dilation_rate=7)
+
+        # concatenate ASPP branches & project
+        x = tf.keras.layers.Concatenate(axis=-1, name='aspp_concat')([b4, b0, b1, b2, b3])
+        x = tf.keras.layers.Conv2D(filters=in_filters,
+                                   kernel_size=(1, 1),
+                                   strides=(1, 1),
+                                   padding='same',
+                                   use_bias=False,
+                                   kernel_initializer=self.kernel_initializer,
+                                   name='aspp_concat_conv')(x)
+        x = self.batch_norm(epsilon=self.EPSILON,
+                            momentum=self.MOMENTUM,
+                            name='aspp_concat_bn')(x)
+        x = tf.keras.layers.Activation(self.activation, name='aspp_concat_activation')(x)
+        x = tf.keras.layers.Dropout(0.1, name='aspp_concat_dropout')(x)
+        return x
+
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
         x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
                                    name='classifier_conv',
@@ -200,78 +258,115 @@ class CSNetHRLite(object):
                                          name='model_output')(x)
         return x
 
-
-
     def build_model(self, hp=None) -> tf.keras.models.Model:
         # Set configurations
-        stem_units = hp.Int("stem_units", min_value=16, max_value=32, step=8) if hp is not None else self.config['stem_units']
+        # stage1 - stage7 (os2-os32)
+        stem_units = 32
+        stage1_units = 16
 
-        os2_expand = hp.Int("os2_expand", min_value=1, max_value=3, step=1) if hp is not None else self.config['os2_expand']
-        os2_units = hp.Int("os2_units", min_value=16, max_value=24, step=8) if hp is not None else self.config['os2_units']
-
-        os4_expand = hp.Int("os4_expand", min_value=1, max_value=3, step=1) if hp is not None else self.config['os4_expand']
-        os4_units = hp.Int("os4_units", min_value=32, max_value=48, step=8) if hp is not None else self.config['os4_units']
-
-        os8_expand = hp.Int("os8_expand", min_value=1, max_value=3, step=1) if hp is not None else self.config['os8_expand']
-        os8_units = hp.Int("os8_units", min_value=56, max_value=72, step=8) if hp is not None else self.config['os8_units']
-
-        os16_expand = hp.Int("os16_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['os16_expand']
-        os16_units = hp.Int("os16_units", min_value=112, max_value=144, step=8) if hp is not None else self.config['os16_units']
-
-        os32_expand = hp.Int("os32_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['os32_expand']
-        os32_units = hp.Int("os32_units", min_value=144, max_value=176, step=8) if hp is not None else self.config['os32_units']
+        stage2_kernel = hp.Int("stage2_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage2_kernel']
+        stage2_layers = hp.Int("stage2_layers", min_value=1, max_value=2, step=1) if hp is not None else self.config['stage2_layers']
+        stage2_expand = hp.Int("stage2_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['stage2_expand']
+        stage2_units = 24
         
+        stage3_kernel = hp.Int("stage3_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage3_kernel']
+        stage3_layers = hp.Int("stage3_layers", min_value=1, max_value=2, step=1) if hp is not None else self.config['stage3_layers']
+        stage3_expand = hp.Int("stage3_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['stage3_expand']
+        stage3_units = 40
+
+        stage4_kernel = hp.Int("stage4_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage4_kernel']
+        stage4_layers = hp.Int("stage4_layers", min_value=2, max_value=3, step=1) if hp is not None else self.config['stage4_layers']
+        stage4_expand = hp.Int("stage4_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['stage4_expand']
+        stage4_units = 80
+
+        stage5_kernel = hp.Int("stage5_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage5_kernel']
+        stage5_layers = hp.Int("stage5_layers", min_value=2, max_value=3, step=1) if hp is not None else self.config['stage5_layers']
+        stage5_expand = hp.Int("stage5_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['stage5_expand']
+        stage5_units = 112
+
+        stage6_kernel = hp.Int("stage6_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage6_kernel']
+        stage6_layers = hp.Int("stage6_layers", min_value=2, max_value=4, step=1) if hp is not None else self.config['stage6_layers']
+        stage6_expand = hp.Int("stage6_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['stage6_expand']
+        stage6_units = 192
+
+        stage7_kernel = hp.Int("stage7_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage7_kernel']
+        stage7_layers = hp.Int("stage7_layers", min_value=2, max_value=4, step=1) if hp is not None else self.config['stage7_layers']
+        stage7_expand = hp.Int("stage7_expand", min_value=3, max_value=6, step=1) if hp is not None else self.config['stage7_expand']
+        stage7_units = 320
+
+        aspp_units = hp.Int("aspp_units", min_value=192, max_value=320, step=64) if hp is not None else self.config['aspp_units']
 
         # 256x256 os1
         input_tensor = tf.keras.Input(shape=(*self.image_size, 3))
         
-
-        # 16 24 32 64 160
+        # 16 24 40 80 112 192 320
 
         # Stem conv
-        stem = self.stem_block(x=input_tensor, filters=stem_units)
+        stem = self.stem_block(x=input_tensor, in_filters=stem_units)
 
-        # 128x128 os2
-        os2 = self.conv_block(x=stem, filters=os2_units, expand_ratio=os2_expand, kernel_size=3, stride=1, block_id='os2_1')
-        os2 = self.conv_block(x=os2, filters=os2_units, expand_ratio=os2_expand, kernel_size=3, stride=1, block_id='os2_output')
+        # Stage 1 : 128x128 os2
+        stage1 = self.conv_block(x=stem, in_filters=stem_units, out_filters=stage1_units, expand_ratio=1, kernel_size=3, stride=1, block_id='stage1_in')
+        stage1 = self.conv_block(x=stage1, in_filters=stage1_units, out_filters=stage1_units, expand_ratio=1, kernel_size=3, stride=1, block_id='stage1_out')
         
-        # 64x64 os4
-        os4 = self.conv_block(x=os2, filters=os4_units, expand_ratio=os4_expand, kernel_size=3, stride=2, block_id='os4_1')
-        os4 = self.conv_block(x=os4, filters=os4_units, expand_ratio=os4_expand, kernel_size=3, stride=1, block_id='os4_output')
-
-        # 32x32 os8
-        os8 = self.conv_block(x=os4, filters=os8_units, expand_ratio=os8_expand, kernel_size=3, stride=2, block_id='os8_1')
-        os8 = self.conv_block(x=os8, filters=os8_units, expand_ratio=os8_expand, kernel_size=3, stride=1, block_id='os8_output')
-            
-        # 16x16 os16
-        os16 = self.conv_block(x=os8, filters=os16_units, expand_ratio=os16_expand, kernel_size=3, stride=2, block_id='os16_1')
-        os16 = self.conv_block(x=os16, filters=os16_units, expand_ratio=os16_expand, kernel_size=3, stride=1, block_id='os16_output')
+        # Stage 2: 64x64 os4
+        stage2 = self.conv_block(x=stage1, in_filters=stage1_units, out_filters=stage2_units, expand_ratio=stage2_expand, kernel_size=stage2_kernel, stride=2, block_id='stage2_in')
+        for i in range(stage2_layers):
+            stage2 = self.conv_block(x=stage2, in_filters=stage2_units, out_filters=stage2_units, expand_ratio=stage2_expand, kernel_size=stage2_kernel, stride=1, block_id='stage2_{0}'.format(i+1))
         
-        # 8x8 os32
-        os32 = self.conv_block(x=os16, filters=os32_units, expand_ratio=os32_expand, kernel_size=3, stride=2, block_id='os32_1')
-        os32 = self.conv_block(x=os32, filters=os32_units, expand_ratio=os32_expand, kernel_size=3, stride=1, block_id='os32_output')
-
-        # embedd somethings?
-
-        # os32 decode -> 16x16
-        x = self.deconv_block(x=os32,         filters=os16_units, expand_ratio=os16_expand, kernel_size=5, block_id='decode_os32_1')
-        x = self.fusion_block(x=x, skip=os16, filters=os16_units, kernel_size=3, block_id='decode_os32_output')
+        # Stage 3: 32x32 os8
+        stage3 = self.conv_block(x=stage2, in_filters=stage2_units, out_filters=stage3_units, expand_ratio=stage3_expand, kernel_size=stage3_kernel, stride=2, block_id='stage3_in')
+        for i in range(stage3_layers):
+            stage3 = self.conv_block(x=stage3, in_filters=stage3_units, out_filters=stage3_units, expand_ratio=stage3_expand, kernel_size=stage3_kernel, stride=1, block_id='stage3_{0}'.format(i+1))
         
-        # os16 decode -> 32x32
-        x = self.deconv_block(x=x,           filters=os8_units, expand_ratio=os8_expand, kernel_size=5, block_id='decode_os16_1')
-        x = self.fusion_block(x=x, skip=os8, filters=os8_units, kernel_size=3, block_id='decode_os16_output')
+        # Stage 4: 16x16 os16
+        stage4 = self.conv_block(x=stage3, in_filters=stage3_units, out_filters=stage4_units, expand_ratio=stage4_expand, kernel_size=stage4_kernel, stride=2, block_id='stage4_in')
+        for i in range(stage4_layers):
+            stage4 = self.conv_block(x=stage4, in_filters=stage4_units, out_filters=stage4_units, expand_ratio=stage4_expand, kernel_size=stage4_kernel, stride=1, block_id='stage4_{0}'.format(i+1))
 
-        # os8 decode -> 64x64
-        x = self.deconv_block(x=x,           filters=os4_units, expand_ratio=os4_expand, kernel_size=5, block_id='decode_os8_1')
-        x = self.fusion_block(x=x, skip=os4, filters=os4_units, kernel_size=3, block_id='decode_os8_output')
+        # Stage 5: 16x16 os16 (without stride)
+        stage5 = self.conv_block(x=stage4, in_filters=stage4_units, out_filters=stage5_units, expand_ratio=stage5_expand, kernel_size=stage5_kernel, stride=1, block_id='stage5_in')
+        for i in range(stage5_layers):
+            stage5 = self.conv_block(x=stage5, in_filters=stage5_units, out_filters=stage5_units, expand_ratio=stage5_expand, kernel_size=stage5_kernel, stride=1, block_id='stage5_{0}'.format(i+1))
 
-        # os4 decode -> 128x128
-        x = self.deconv_block(x=x,           filters=os2_units, expand_ratio=os2_expand, kernel_size=5, block_id='decode_os4_1')
-        x = self.fusion_block(x=x, skip=os2, filters=os2_units, kernel_size=3, block_id='decode_os4_output')
+        # Stage 6: 8x8 os32
+        stage6 = self.conv_block(x=stage5, in_filters=stage5_units, out_filters=stage6_units, expand_ratio=stage6_expand, kernel_size=stage6_kernel, stride=2, block_id='stage6_in')
+        for i in range(stage6_layers):
+            stage6 = self.conv_block(x=stage6, in_filters=stage6_units, out_filters=stage6_units, expand_ratio=stage6_expand, kernel_size=stage6_kernel, stride=1, block_id='stage6_{0}'.format(i+1))
+
+        # Stage 7: 8x8 os32 (without stride)
+        stage7 = self.conv_block(x=stage6, in_filters=stage6_units, out_filters=stage7_units, expand_ratio=stage7_expand, kernel_size=stage7_kernel, stride=1, block_id='stage7_in')
+        for i in range(stage7_layers):
+            stage7 = self.conv_block(x=stage7, in_filters=stage7_units, out_filters=stage7_units, expand_ratio=stage7_expand, kernel_size=stage7_kernel, stride=1, block_id='stage7_{0}'.format(i+1))
+
+        
+        # embedding lightweight Atrous Spatail Pyramid Pooling(ASPP)
+        # Image Feature branch
+        x = self.aspp(x=stage7, in_filters=stage7_units, out_filters=aspp_units)
+
+        # os32 decode -> 16x16 (os16)
+        x = self.deconv_block(x=x, in_filters=aspp_units, out_filters=stage5_units, expand_ratio=stage5_expand, kernel_size=3, block_id='decode_os16_deconv')
+        x = self.fusion_block(x=x, skip=stage5, in_filters=stage5_units, kernel_size=3, block_id='decode_os16_fusion')
+        x = self.conv_block(x=x, in_filters=stage5_units, out_filters=stage5_units, expand_ratio=stage5_expand, kernel_size=3, stride=1, block_id='decode_os16_output')
+        
+        # os16 decode -> 32x32 (os8)
+        x = self.deconv_block(x=x, in_filters=stage5_units, out_filters=stage3_units, expand_ratio=stage3_expand, kernel_size=3, block_id='decode_os8_deconv')
+        x = self.fusion_block(x=x, skip=stage3, in_filters=stage3_units, kernel_size=3, block_id='decode_os8_fusion')
+        x = self.conv_block(x=x, in_filters=stage3_units, out_filters=stage3_units, expand_ratio=stage3_expand, kernel_size=3, stride=1, block_id='decode_os8_output')
+
+        # os8 decode -> 64x64 (os4)
+        x = self.deconv_block(x=x, in_filters=stage3_units, out_filters=stage2_units, expand_ratio=stage2_expand, kernel_size=3, block_id='decode_os4_deconv')
+        x = self.fusion_block(x=x, skip=stage2, in_filters=stage2_units, kernel_size=3, block_id='decode_os4_fusion')
+        x = self.conv_block(x=x, in_filters=stage2_units, out_filters=stage2_units, expand_ratio=stage2_expand, kernel_size=3, stride=1, block_id='decode_os4_output')
+
+        # os4 decode -> 128x128 (os2)
+        x = self.deconv_block(x=x, in_filters=stage2_units, out_filters=stage1_units, expand_ratio=1, kernel_size=3, block_id='decode_os2_deconv')
+        x = self.fusion_block(x=x, skip=stage1, in_filters=stage1_units, kernel_size=3, block_id='decode_os2_fusion')
+        x = self.conv_block(x=x, in_filters=stage1_units, out_filters=stage1_units, expand_ratio=1, kernel_size=3, stride=1, block_id='decode_os2_output')
        
        # os2 classifer -> 256x256
         x = self.classifier(x=x)
 
         model = tf.keras.models.Model(inputs=input_tensor, outputs=x)
-
+        
+        print('Model parameters => {0}'.format(model.count_params()))
         return model

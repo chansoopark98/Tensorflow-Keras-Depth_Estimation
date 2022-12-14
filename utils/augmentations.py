@@ -39,7 +39,7 @@ class Augmentation(object):
         # Degrees to Radian
         upper = 35 * (3.14 / 180.0)
 
-        rand_degree = tf.random.uniform([], minval=0., maxval=upper)
+        rand_degree = tf.random.uniform([], minval=-upper, maxval=upper)
 
         image = tfa.image.rotate(image, rand_degree, interpolation='bilinear')
         depth = tfa.image.rotate(depth, rand_degree, interpolation='bilinear')

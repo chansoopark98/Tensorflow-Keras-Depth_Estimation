@@ -9,6 +9,7 @@ checkpoints/
 *.so
 
 keras_tuner/
+inputs/
 
 # Distribution / packaging
 .Python
