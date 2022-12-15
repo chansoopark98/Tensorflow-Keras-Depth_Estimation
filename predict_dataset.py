@@ -19,7 +19,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='1214/_Bs-32_Ep-30_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_1214_test-model_best_loss.h5')
+                    default='1215/_Bs-32_Ep-50_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_1215_test-model_best_loss.h5')
 
 args = parser.parse_args()
 

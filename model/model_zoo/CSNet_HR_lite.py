@@ -9,7 +9,7 @@ class CSNetHRLite(object):
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
         self.EPSILON = 0.001
-        self.activation = self.hard_swish
+        self.activation = self.relu
         self.dropout_rate = 0.2
         self.configuration_default()
 
@@ -170,7 +170,7 @@ class CSNetHRLite(object):
                             momentum=self.MOMENTUM,
                             name='deconv_conv_bn_{0}'.format(block_id))(x)
 
-        x = tf.keras.layers.UpSampling2D((2, 2), name='deconv_nearest_upsample_{0}'.format(block_id))(x)
+        x = tf.keras.layers.UpSampling2D((2, 2), interpolation='bilinear', name='deconv_bilinear_upsample_{0}'.format(block_id))(x)
         return x
     
     def fusion_block(self, x: tf.Tensor, skip: tf.Tensor, in_filters: int,
@@ -220,7 +220,7 @@ class CSNetHRLite(object):
         
         size_before = tf.keras.backend.int_shape(x)
         b4 = tf.keras.layers.experimental.preprocessing.Resizing(*size_before[1:3],
-                                                                 interpolation="bilinear",
+                                                                 interpolation='bilinear',
                                                                  name='aspp_b4_resize')(b4)
         
         # b0

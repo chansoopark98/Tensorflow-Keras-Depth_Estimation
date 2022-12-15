@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 dataset = GenerateDatasets(data_dir='./datasets/', image_size=(256, 256), batch_size=1, dataset_name='nyu_depth_v2')
 
-test_data = dataset.get_testData(test_data=dataset.test_data)
+test_data = dataset.get_trainData(train_data=dataset.train_data)
 
 if __name__ == "__main__":
     for img, depth in test_data.take(100):
