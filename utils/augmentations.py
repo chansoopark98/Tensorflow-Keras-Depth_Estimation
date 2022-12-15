@@ -11,7 +11,7 @@ class Augmentation(object):
         image = tf.image.resize(image, size=self.image_size,
                             method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=self.image_size,
-                                method=tf.image.ResizeMethod.BILINEAR)
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         return (image, depth)
 
@@ -24,7 +24,7 @@ class Augmentation(object):
         image = tf.image.resize(image, size=(new_h, new_w),
                             method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=(new_h, new_w),
-                                method=tf.image.ResizeMethod.BILINEAR)
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         rgbd = tf.concat([image, depth], axis=-1)
         rgbd = tf.image.random_crop(
@@ -42,7 +42,7 @@ class Augmentation(object):
         rand_degree = tf.random.uniform([], minval=-upper, maxval=upper)
 
         image = tfa.image.rotate(image, rand_degree, interpolation='bilinear')
-        depth = tfa.image.rotate(depth, rand_degree, interpolation='bilinear')
+        depth = tfa.image.rotate(depth, rand_degree)
 
         return (image, depth)
 

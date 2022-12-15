@@ -19,17 +19,14 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='1215/_Bs-32_Ep-50_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_1215_test-model_best_loss.h5')
+                    default='1215/_Bs-32_Ep-50_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_1215_test-model-only-rmse_best_loss.h5')
 
 args = parser.parse_args()
-
 
 if __name__ == '__main__':
     data_loader = GenerateDatasets(data_dir='./datasets/', batch_size=1, image_size=args.image_size, dataset_name='nyu_depth_v2') 
 
     test_data = data_loader.get_testData(test_data=data_loader.test_data)
-
-    
 
     # Set target transforms
     model = ModelBuilder(image_size=args.image_size).build_model()
@@ -38,7 +35,6 @@ if __name__ == '__main__':
 
     for img, depth in test_data.take(100):
         pred = model.predict(img)
-
 
         rows = 1
         cols = 3

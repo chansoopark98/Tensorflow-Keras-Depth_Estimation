@@ -6,7 +6,7 @@ from utils.load_datasets import GenerateDatasets
 tf.keras.backend.clear_session()
     
 image_size = (256, 256)
-batch_size = 32
+batch_size = 16
 learning_rate = 0.001
 epoch = 5
 max_trials = 20
@@ -38,7 +38,7 @@ tensorboard = tf.keras.callbacks.TensorBoard(log_dir='./tensorboard/' + 'model_t
 
 polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=learning_rate,
                             decay_steps=epoch,
-                            end_learning_rate=learning_rate * 0.9, power=0.5)
+                            end_learning_rate=learning_rate * 0.95, power=0.5)
 
 lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
 early_stopping = tf.keras.callbacks.EarlyStopping('val_loss', patience=2)
@@ -60,7 +60,6 @@ tf.keras.mixed_precision.set_global_policy('mixed_float16')
 optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
 input_tensor = tf.keras.Input(shape=(*image_size, 3))
-
 
 
 def build_model(hp: keras_tuner.HyperParameters()):

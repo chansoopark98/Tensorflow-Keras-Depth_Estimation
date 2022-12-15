@@ -22,6 +22,8 @@ class DataLoadHandler(object):
         """
             Loads a custom dataset specified by the user.
         """
+        percentage = 100
+        # self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train[:{0}%]'.format(percentage))
         self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train')
         self.valid_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='validation')
         self.test_data = self.valid_data
@@ -32,6 +34,9 @@ class DataLoadHandler(object):
         else:
             self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
             self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+
+        # self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
+        # self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_test = self.number_valid
 
         # Print  dataset meta data
@@ -70,8 +75,8 @@ class GenerateDatasets(DataLoadHandler):
         # normalize image
         image /= 255.
 
-        # normalize depth map
-        depth /= 10.
+        # # normalize depth map
+        # depth /= 10.
 
         return (image, depth)
 
@@ -87,33 +92,32 @@ class GenerateDatasets(DataLoadHandler):
         depth = tf.expand_dims(depth, axis=-1)
 
         image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         # normalize image
         image /= 255.
 
-        # normalize depth map
-        depth /= 10.
+        # # normalize depth map
+        # depth /= 10.
 
         return (image, depth)
     
     
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_crop(image=image, depth=depth)
-        else:
-            image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-            depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_crop(image=image, depth=depth)
+        # else:
+        image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_rotate(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)
 
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
 
         return (image, depth)
-
 
     def get_trainData(self, train_data):
         train_data = train_data.shuffle(self.batch_size * 64)
@@ -125,13 +129,11 @@ class GenerateDatasets(DataLoadHandler):
             train_data = train_data.repeat()
         return train_data
 
-
     def get_validData(self, valid_data):
         valid_data = valid_data.map(self.preprocess_valid, num_parallel_calls=AUTO)
         valid_data = valid_data.padded_batch(self.batch_size).prefetch(AUTO)
 
         return valid_data
-
 
     def get_testData(self, test_data):
         test_data = test_data.map(self.preprocess_valid)
