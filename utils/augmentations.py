@@ -14,12 +14,21 @@ class Augmentation(object):
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         random_gamma = tf.random.uniform([], 0.9, 1.1)
-        image *= random_gamma
+        image = image ** random_gamma
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 
     def random_brightness(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        image = tf.image.random_brightness(image, 0.25)
+        random_bright = tf.random.uniform([], 0.75, 1.25)
+        image = image * random_bright
+        image = tf.clip_by_value(image, 0, 255)
+        return (image, depth)
+
+    def random_color(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
+        colors = tf.random.uniform([3], 0.9, 1.1)
+        white = tf.ones([427, 565])
+        color_image = tf.stack([white * colors[i] for i in range(3)], axis=2)
+        image *= color_image
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 

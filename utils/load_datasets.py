@@ -57,7 +57,7 @@ class GenerateDatasets(DataLoadHandler):
         self.batch_size = batch_size
         self.dataset_name = dataset_name
         self.is_tunning = is_tunning
-        self.augmentations = Augmentation(image_size=self.image_size, max_crop_scale=1.3)
+        self.augmentations = Augmentation(image_size=self.image_size, max_crop_scale=1.5)
         super().__init__(data_dir=self.data_dir, dataset_name=self.dataset_name)
 
 
@@ -104,10 +104,11 @@ class GenerateDatasets(DataLoadHandler):
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
         # Color augmentation
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_brightness(image=image, depth=depth)
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_gamma(image=image, depth=depth)
+        image, depth = self.augmentations.random_color(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_brightness(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_gamma(image=image, depth=depth)
 
         # Transform augmentation
         if tf.random.uniform([]) > 0.5:
