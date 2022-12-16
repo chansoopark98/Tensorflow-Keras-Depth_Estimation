@@ -13,9 +13,9 @@ parser = argparse.ArgumentParser()
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name (logging weights name and tensorboard)",
-                    default='test_loss-single-adamW')
+                    default='new_model-l1_ssim_edge_si')
 parser.add_argument("--batch_size",       type=int,    help="Batch size per each GPU",
-                    default=16)
+                    default=32)
 parser.add_argument("--epoch",            type=int,    help="Training epochs",
                     default=100)
 parser.add_argument("--lr",               type=float,  help="Initial learning rate",

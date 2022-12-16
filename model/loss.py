@@ -19,7 +19,7 @@ class DepthEstimationLoss():
     def depth_loss(self, target, pred):
         target = tf.cast(target, tf.float32)
         pred = tf.cast(pred, tf.float32)
-        
+
         # Edges
         dy_true, dx_true = tf.image.image_gradients(target)
         dy_pred, dx_pred = tf.image.image_gradients(pred)

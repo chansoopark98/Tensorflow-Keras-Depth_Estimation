@@ -23,19 +23,22 @@ class CSNetHRLite(object):
 
         # Set model hyper parameters value
         self.config = {
-            'stage1_kernel': 3,
+            'stage1_kernel': 5,
             'stage1_layers': 2,
-            'stage2_kernel': 3,
-            'stage2_layers': 4,
-            'stage2_expand': 2,
-            'stage3_kernel': 3,
-            'stage3_layers': 2,
-            'stage3_expand': 6,
+            'stage2_kernel': 5,
+            'stage2_layers': 2,
+            'stage2_expand': 1,
+            'stage3_kernel': 5,
+            'stage3_layers': 1,
+            'stage3_expand': 1,
             'stage4_kernel': 3,
-            'stage4_layers': 6,
-            'stage4_expand': 4,
-            'stage5_layers': 4,
-            'stage5_expand': 4
+            'stage4_layers': 4,
+            'stage4_expand': 1,
+            'stage5_layers': 3,
+            'stage5_expand': 4,
+            'stage6_layers': 4,
+            'stage6_expand': 6,
+            'aspp_dropout': 0.5
         }
 
     def correct_pad(self, inputs, kernel_size):
