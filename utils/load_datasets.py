@@ -72,11 +72,9 @@ class GenerateDatasets(DataLoadHandler):
         depth = tf.cast(sample['depth'], tf.float32)
         depth = tf.expand_dims(depth, axis=-1)
 
-        # normalize image
-        image /= 255.
-
-        # # normalize depth map
-        depth /= 10.
+        # crop blank area
+        image = image[45:472, 43:608]
+        depth = depth[45:472, 43:608]
 
         return (image, depth)
 
@@ -91,32 +89,40 @@ class GenerateDatasets(DataLoadHandler):
         depth = tf.cast(sample['depth'], tf.float32)
         depth = tf.expand_dims(depth, axis=-1)
 
+        # crop blank area
+        image = image[45:472, 43:608]
+        depth = depth[45:472, 43:608]
+
         image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-        # normalize image
-        image /= 255.
-
-        # # normalize depth map
-        depth /= 10.
+        image, depth = self.augmentations.normalize(image=image, depth=depth)
 
         return (image, depth)
     
     
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
+        # Color augmentation
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_brightness(image=image, depth=depth)
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_gamma(image=image, depth=depth)
+
+        # Transform augmentation
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.random_crop(image=image, depth=depth)
         else:
             image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
             depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-        # if tf.random.uniform([]) > 0.5:
-        #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_rotate(image=image, depth=depth)
 
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
 
+        image, depth = self.augmentations.normalize(image=image, depth=depth)
         return (image, depth)
 
     def get_trainData(self, train_data: tf.data.Dataset):

@@ -6,14 +6,23 @@ class Augmentation(object):
     def __init__(self, image_size: tuple, max_crop_scale: float):
         self.image_size = image_size
         self.max_crop_scale = max_crop_scale
-    
-    def resize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        image = tf.image.resize(image, size=self.image_size,
-                            method=tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, size=self.image_size,
-                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
+    def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
+        image /= 255.
+        depth /= 10.
         return (image, depth)
+        
+    def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
+        random_gamma = tf.random.uniform([], 0.9, 1.1)
+        image *= random_gamma
+        image = tf.clip_by_value(image, 0, 255)
+        return (image, depth)
+
+    def random_brightness(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
+        image = tf.image.random_brightness(image, 0.25)
+        image = tf.clip_by_value(image, 0, 255)
+        return (image, depth)
+
 
     def random_crop(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         scale = tf.random.uniform([], 1.0, self.max_crop_scale)
