@@ -45,29 +45,24 @@ early_stopping = tf.keras.callbacks.EarlyStopping('val_loss', patience=2)
 
 callback = [tensorboard, lr_scheduler, early_stopping]
 
-# optimizer
-if optimizer_type == 'sgd':
-    optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=learning_rate)
-elif optimizer_type == 'adam':
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-elif optimizer_type == 'rmsprop':
-    optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate, momentum=0.9)
-else:
-    raise print('unknown optimizer type')
-
-# mixed precision
-tf.keras.mixed_precision.set_global_policy('mixed_float16')
-optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
-
-input_tensor = tf.keras.Input(shape=(*image_size, 3))
-
-
 def build_model(hp: keras_tuner.HyperParameters()):
+
+    # optimizer
+    if optimizer_type == 'sgd':
+        optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=learning_rate)
+    elif optimizer_type == 'adam':
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    elif optimizer_type == 'rmsprop':
+        optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate, momentum=0.9)
+    else:
+        raise print('unknown optimizer type')
+
+    # mixed precision
+    tf.keras.mixed_precision.set_global_policy('mixed_float16')
+    optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
     accuracy_metric = tf.keras.metrics.RootMeanSquaredError()
     metrics = [accuracy_metric]
-
-
 
     model = CSNetHRLite(image_size=image_size, classifier_activation=None,                        
                         use_multi_gpu=False).build_model(hp)
@@ -79,12 +74,12 @@ def build_model(hp: keras_tuner.HyperParameters()):
 
     return model
 
-
 tuner = keras_tuner.BayesianOptimization(hypermodel=build_model,
-                                        objective='val_loss',
+                                        # objective='val_loss',
+                                        objective=keras_tuner.Objective('val_root_mean_squared_error', direction='min'),
                                         max_trials=max_trials,
                                         overwrite=True,
-                                        distribution_strategy=tf.distribute.MirroredStrategy(),
+                                        # distribution_strategy=tf.distribute.MirroredStrategy(),
                                         directory='keras_tuner',
                                         project_name='csnet-depth-estimation'
                                         )

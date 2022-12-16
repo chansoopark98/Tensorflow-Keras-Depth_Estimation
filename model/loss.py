@@ -5,7 +5,7 @@ class DepthEstimationLoss():
     def __init__(self, global_batch_size, distribute_mode=False):
         self.global_batch_size = global_batch_size
         self.distribute_mode = distribute_mode
-        self.max_depth_val = 10
+        self.max_depth_val = 256
         self.ssim_loss_weight = 0.85
         self.l1_loss_weight = 0.1
         self.rmse_loss_weight = 0.1
@@ -17,6 +17,9 @@ class DepthEstimationLoss():
         return 10 * tf.math.sqrt(Dg)
 
     def depth_loss(self, target, pred):
+        target = tf.cast(target, tf.float32)
+        pred = tf.cast(pred, tf.float32)
+        
         # Edges
         dy_true, dx_true = tf.image.image_gradients(target)
         dy_pred, dx_pred = tf.image.image_gradients(pred)
@@ -35,7 +38,7 @@ class DepthEstimationLoss():
         ssim_loss = tf.reduce_mean(
             1
             - tf.image.ssim(
-                target, pred, max_val=256, filter_size=7, k1=0.01 ** 2, k2=0.03 ** 2
+                target, pred, max_val=self.max_depth_val, filter_size=7, k1=0.01 ** 2, k2=0.03 ** 2
             )
         )
         # Point-wise depth

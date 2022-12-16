@@ -22,21 +22,21 @@ class DataLoadHandler(object):
         """
             Loads a custom dataset specified by the user.
         """
-        percentage = 100
-        # self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train[:{0}%]'.format(percentage))
-        self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train')
+        percentage = 5
+        self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train[:{0}%]'.format(percentage))
+        # self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train')
         self.valid_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='validation')
         self.test_data = self.valid_data
 
-        if self.dataset_name == 'nyu_depth_v2':
-            self.number_train = 47584
-            self.number_valid = 654
-        else:
-            self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-            self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        # if self.dataset_name == 'nyu_depth_v2':
+        #     self.number_train = 47584
+        #     self.number_valid = 654
+        # else:
+        #     self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
+        #     self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
 
-        # self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-        # self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_test = self.number_valid
 
         # Print  dataset meta data
@@ -76,7 +76,7 @@ class GenerateDatasets(DataLoadHandler):
         image /= 255.
 
         # # normalize depth map
-        # depth /= 10.
+        depth /= 10.
 
         return (image, depth)
 
@@ -98,18 +98,18 @@ class GenerateDatasets(DataLoadHandler):
         image /= 255.
 
         # # normalize depth map
-        # depth /= 10.
+        depth /= 10.
 
         return (image, depth)
     
     
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
-        # if tf.random.uniform([]) > 0.5:
-        #     image, depth = self.augmentations.random_crop(image=image, depth=depth)
-        # else:
-        image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_crop(image=image, depth=depth)
+        else:
+            image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+            depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         # if tf.random.uniform([]) > 0.5:
         #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)
@@ -119,7 +119,7 @@ class GenerateDatasets(DataLoadHandler):
 
         return (image, depth)
 
-    def get_trainData(self, train_data):
+    def get_trainData(self, train_data: tf.data.Dataset):
         train_data = train_data.shuffle(self.batch_size * 64)
         train_data = train_data.map(self.preprocess, num_parallel_calls=AUTO)
         train_data = train_data.map(self.augmentation, num_parallel_calls=AUTO)
@@ -129,13 +129,13 @@ class GenerateDatasets(DataLoadHandler):
             train_data = train_data.repeat()
         return train_data
 
-    def get_validData(self, valid_data):
+    def get_validData(self, valid_data: tf.data.Dataset):
         valid_data = valid_data.map(self.preprocess_valid, num_parallel_calls=AUTO)
         valid_data = valid_data.padded_batch(self.batch_size).prefetch(AUTO)
 
         return valid_data
 
-    def get_testData(self, test_data):
+    def get_testData(self, test_data: tf.data.Dataset):
         test_data = test_data.map(self.preprocess_valid)
         test_data = test_data.batch(self.batch_size).prefetch(AUTO)
 
