@@ -23,20 +23,20 @@ class DataLoadHandler(object):
             Loads a custom dataset specified by the user.
         """
         percentage = 10
-        self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train[:{0}%]'.format(percentage))
-        # self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train')
+        # self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train[:{0}%]'.format(percentage))
+        self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train')
         self.valid_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='validation')
         self.test_data = self.valid_data
 
-        # if self.dataset_name == 'nyu_depth_v2':
-        #     self.number_train = 47584
-        #     self.number_valid = 654
-        # else:
-        #     self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-        #     self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        if self.dataset_name == 'nyu_depth_v2':
+            self.number_train = 47584
+            self.number_valid = 654
+        else:
+            self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
+            self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
 
-        self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-        self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        # self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
+        # self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_test = self.number_valid
 
         # Print  dataset meta data

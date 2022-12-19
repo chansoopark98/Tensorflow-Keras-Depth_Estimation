@@ -39,9 +39,9 @@ class DepthEstimationLoss():
             tf.clip_by_value((1 - tf.image.ssim(target, pred, max_val=self.max_depth_val, filter_size=7, k1=0.01 ** 2, k2=0.03 ** 2)) * 0.5, 0, 1)
         )
         # Point-wise depth
-        # l1_loss = tf.reduce_mean(tf.abs(target - pred))
+        l1_loss = tf.reduce_mean(tf.abs(target - pred))
         # RMSE loss
-        l1_loss = tf.reduce_mean(tf.square(tf.abs(target - pred)))
+        # l1_loss = tf.reduce_mean(tf.square(tf.abs(target - pred)))
         # l1_loss = self.si_loss(target, pred)
 
         loss = (self.ssim_loss_weight * ssim_loss) + (self.l1_loss_weight * l1_loss) + (self.edge_loss_weight * depth_smoothness_loss)
