@@ -9,7 +9,7 @@ image_size = (256, 256)
 batch_size = 16
 learning_rate = 0.001
 epoch = 5
-max_trials = 20
+max_trials = 30
 optimizer_type = 'adam'
 weight_decay = 0.0001
 

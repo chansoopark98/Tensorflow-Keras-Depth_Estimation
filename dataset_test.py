@@ -1,52 +1,51 @@
 import tensorflow as tf
 from utils.load_datasets import GenerateDatasets
-from utils.plot_generator import plot_generator
+# from utils.plot_generator import plot_generator
+import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = GenerateDatasets(data_dir='./datasets/', image_size=(256, 256), batch_size=1, dataset_name='nyu_depth_v2')
+dataset = GenerateDatasets(data_dir='./datasets/', image_size=(480, 640), batch_size=1, dataset_name='nyu_depth_v2')
 
-test_data = dataset.get_trainData(train_data=dataset.train_data)
+test_data = dataset.get_validData(valid_data=dataset.valid_data)
 
+tf.config.set_soft_device_placement(True)
+
+
+sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
+plt.colorbar(sm)
 if __name__ == "__main__":
-    for img, depth in test_data.take(100):
-        img = img[0]
+    gpu_number = '/device:GPU:' + str(1)
+    with tf.device(gpu_number):
+        i = 1
+        for img, depth in test_data.take(100):
+            img = img[0]
 
-        depth = tf.cast(depth, tf.float32)
-        depth = depth[0]
+            depth = tf.cast(depth, tf.float32)
+            depth = depth[0]
 
-        # Format
-        # img = tf.image.convert_image_dtype(img5., dtype=tf.float32)
-        # depth = tf.image.convert_image_dtype(depth/255., dtype=tf.float32)
-        # depth = tf.cast(depth / 255.0, tf.float32)
-        # Normalize the depth values (in cm)
-        # norm_depth = 1000 / tf.clip_by_value(norm_depth * 1000, 10, 1000)
-        # norm_depth = 1. / depth
+            np_depth = depth.numpy()
+            
+            rows = 1
+            cols = 3
+            
+            fig = plt.figure()
+            
+            ax0 = fig.add_subplot(rows, cols, 1)
+            ax0.imshow(img, cmap='plasma')
+            ax0.set_title('img')
+            ax0.axis("off")
+            
+            ax0 = fig.add_subplot(rows, cols, 2)
+            ax0.imshow(depth, cmap='plasma')
+            ax0.set_title('depth')
+            ax0.axis("off")
 
-        norm_depth = tf.math.divide_no_nan(1000., depth*1000)
-        norm_depth /= 1000.
+            fig.subplots_adjust(right=1.0)
+            cbar_ax = fig.add_axes([0.72, 0.35, 0.02, 0.3])
+            fig.colorbar(sm, cax=cbar_ax)
 
-
-        rows = 1
-        cols = 3
-        fig = plt.figure()
-        ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img)
-        ax0.set_title('img')
-        ax0.axis("off")
-
-        ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(depth)
-        ax0.set_title('depth')
-        ax0.axis("off")
-
-
-        ax0 = fig.add_subplot(rows, cols, 3)
-        ax0.imshow(norm_depth)
-        ax0.set_title('norm_depth')
-        ax0.axis("off")
-
-    
-        plt.show()
-
-
-
+            # plt.show()
+            
+            # plt.savefig('./plt_outputs/output_{0}'.format(i), dpi=300)
+            # i += 1
+            

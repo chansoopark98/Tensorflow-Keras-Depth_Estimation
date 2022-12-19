@@ -5,14 +5,14 @@ class DepthEstimationLoss():
     def __init__(self, global_batch_size, distribute_mode=False):
         self.global_batch_size = global_batch_size
         self.distribute_mode = distribute_mode
-        self.max_depth_val = 256
-        self.ssim_loss_weight = 0.85
+        self.max_depth_val = 1.0
+        self.ssim_loss_weight = 1.0
         self.l1_loss_weight = 0.1
         self.rmse_loss_weight = 0.1
-        self.edge_loss_weight = 0.9
+        self.edge_loss_weight = 1.0
 
     def si_loss(self, y_true, y_pred):
-        g = tf.math.log(y_true) - tf.math.log(y_pred)
+        g = tf.abs(tf.math.log(y_pred) - tf.math.log(y_true))
         Dg = tf.math.reduce_variance(g) + 0.15 * tf.math.pow(tf.math.reduce_mean(g), 2)
         return 10 * tf.math.sqrt(Dg)
 
@@ -30,25 +30,21 @@ class DepthEstimationLoss():
         smoothness_x = dx_pred * weights_x
         smoothness_y = dy_pred * weights_y
 
-        depth_smoothness_loss = tf.reduce_mean(abs(smoothness_x)) + tf.reduce_mean(
-            abs(smoothness_y)
+        depth_smoothness_loss = tf.reduce_mean(tf.abs(smoothness_x)) + tf.reduce_mean(
+            tf.abs(smoothness_y)
         )
 
         # Structural similarity (SSIM) index
         ssim_loss = tf.reduce_mean(
-            1
-            - tf.image.ssim(
-                target, pred, max_val=self.max_depth_val, filter_size=7, k1=0.01 ** 2, k2=0.03 ** 2
-            )
+            tf.clip_by_value((1 - tf.image.ssim(target, pred, max_val=self.max_depth_val, filter_size=7, k1=0.01 ** 2, k2=0.03 ** 2)) * 0.5, 0, 1)
         )
         # Point-wise depth
-        l1_loss = tf.reduce_mean(tf.abs(target - pred))
+        # l1_loss = tf.reduce_mean(tf.abs(target - pred))
+        # RMSE loss
+        l1_loss = tf.reduce_mean(tf.square(tf.abs(target - pred)))
+        # l1_loss = self.si_loss(target, pred)
 
-        loss = (
-            (self.ssim_loss_weight * ssim_loss)
-            + (self.l1_loss_weight * l1_loss)
-            + (self.edge_loss_weight * depth_smoothness_loss)
-        )
+        loss = (self.ssim_loss_weight * ssim_loss) + (self.l1_loss_weight * l1_loss) + (self.edge_loss_weight * depth_smoothness_loss)
 
         return loss
     
