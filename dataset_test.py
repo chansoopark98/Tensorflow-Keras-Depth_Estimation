@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 dataset = GenerateDatasets(data_dir='./datasets/', image_size=(480, 640), batch_size=1, dataset_name='nyu_depth_v2')
 
-test_data = dataset.get_validData(valid_data=dataset.valid_data)
+test_data = dataset.get_trainData(dataset.valid_data)
 
 tf.config.set_soft_device_placement(True)
 
@@ -14,38 +14,37 @@ tf.config.set_soft_device_placement(True)
 sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
 plt.colorbar(sm)
 if __name__ == "__main__":
-    gpu_number = '/device:GPU:' + str(1)
-    with tf.device(gpu_number):
-        i = 1
-        for img, depth in test_data.take(100):
-            img = img[0]
 
-            depth = tf.cast(depth, tf.float32)
-            depth = depth[0]
+    i = 1
+    for img, depth in test_data.take(100):
+        img = img[0]
 
-            np_depth = depth.numpy()
-            
-            rows = 1
-            cols = 3
-            
-            fig = plt.figure()
-            
-            ax0 = fig.add_subplot(rows, cols, 1)
-            ax0.imshow(img, cmap='plasma')
-            ax0.set_title('img')
-            ax0.axis("off")
-            
-            ax0 = fig.add_subplot(rows, cols, 2)
-            ax0.imshow(depth, cmap='plasma')
-            ax0.set_title('depth')
-            ax0.axis("off")
+        depth = tf.cast(depth, tf.float32)
+        depth = depth[0]
 
-            fig.subplots_adjust(right=1.0)
-            cbar_ax = fig.add_axes([0.72, 0.35, 0.02, 0.3])
-            fig.colorbar(sm, cax=cbar_ax)
+        np_depth = depth.numpy()
+        
+        rows = 1
+        cols = 3
+        
+        fig = plt.figure()
+        
+        ax0 = fig.add_subplot(rows, cols, 1)
+        ax0.imshow(img, cmap='plasma')
+        ax0.set_title('img')
+        ax0.axis("off")
+        
+        ax0 = fig.add_subplot(rows, cols, 2)
+        ax0.imshow(depth, cmap='plasma')
+        ax0.set_title('depth')
+        ax0.axis("off")
 
-            # plt.show()
-            
-            # plt.savefig('./plt_outputs/output_{0}'.format(i), dpi=300)
-            # i += 1
-            
+        fig.subplots_adjust(right=1.0)
+        cbar_ax = fig.add_axes([0.72, 0.35, 0.02, 0.3])
+        fig.colorbar(sm, cax=cbar_ax)
+
+        plt.show()
+        
+        # plt.savefig('./plt_outputs/output_{0}'.format(i), dpi=300)
+        # i += 1
+        

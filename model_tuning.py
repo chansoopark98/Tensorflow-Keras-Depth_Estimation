@@ -8,8 +8,9 @@ tf.keras.backend.clear_session()
 image_size = (256, 256)
 batch_size = 16
 learning_rate = 0.001
-epoch = 5
-max_trials = 30
+epoch = 7
+data_percentage = 5
+max_trials = 20
 optimizer_type = 'adam'
 weight_decay = 0.0001
 
@@ -19,7 +20,8 @@ data_loader = GenerateDatasets(data_dir='./datasets/',
                                 image_size=image_size,
                                 batch_size=batch_size,
                                 dataset_name='nyu_depth_v2',
-                                is_tunning=True)
+                                is_tunning=True,
+                                percentage=data_percentage)
 
 # Concatenate dataset (train+valid)
 train_data = data_loader.train_data
@@ -51,7 +53,7 @@ def build_model(hp: keras_tuner.HyperParameters()):
     if optimizer_type == 'sgd':
         optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=learning_rate)
     elif optimizer_type == 'adam':
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, amsgrad=True)
     elif optimizer_type == 'rmsprop':
         optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate, momentum=0.9)
     else:

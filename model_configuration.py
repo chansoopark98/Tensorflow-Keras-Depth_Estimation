@@ -23,7 +23,9 @@ class ModelConfiguration(GenerateDatasets):
         super().__init__(data_dir=self.DATASET_DIR,
                          image_size=self.IMAGE_SIZE,
                          batch_size=self.BATCH_SIZE,
-                         dataset_name=args.dataset_name
+                         dataset_name=args.dataset_name,
+                         is_tunning=False,
+                         percentage=100
                          )
 
 
@@ -108,17 +110,20 @@ class ModelConfiguration(GenerateDatasets):
         checkpoint_val_loss = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_loss.h5',
                                               monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
 
+        checkpoint_metric = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_rmse.h5',
+                                              monitor='val_root_mean_squared_error', save_best_only=True, save_weights_only=True, verbose=1)
+
         tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR + 'train/' +
                                   self.MODEL_PREFIX, write_graph=True, write_images=True)
 
         polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.INIT_LR,
                                                                   decay_steps=self.EPOCHS,
-                                                                  end_learning_rate=self.INIT_LR * 0.1, power=0.9)
+                                                                  end_learning_rate=self.INIT_LR * 0.01, power=0.9)
 
         lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
         
         # If you wanna need another callbacks, please add here.
-        self.callback = [checkpoint_val_loss,  tensorboard, lr_scheduler]
+        self.callback = [checkpoint_val_loss, checkpoint_metric,  tensorboard, lr_scheduler]
     
     def __set_optimizer(self):
         """
@@ -127,7 +132,7 @@ class ModelConfiguration(GenerateDatasets):
         if self.OPTIMIZER_TYPE == 'sgd':
             self.optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'adam':
-            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR)
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR, amsgrad=True)
         elif self.OPTIMIZER_TYPE == 'radam':
             self.optimizer = tfa.optimizers.RectifiedAdam(learning_rate=self.INIT_LR,
                                                           weight_decay=0.00001,
@@ -136,7 +141,7 @@ class ModelConfiguration(GenerateDatasets):
                                                           warmup_proportion=0.1,
                                                           min_lr=0.0001)
         elif self.OPTIMIZER_TYPE == 'adamW':
-            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.001)
+            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.0001, amsgrad=True)
         if self.MIXED_PRECISION:
             tf.keras.mixed_precision.set_global_policy('mixed_float16')
             # Wrapping optimizer by mixed precision

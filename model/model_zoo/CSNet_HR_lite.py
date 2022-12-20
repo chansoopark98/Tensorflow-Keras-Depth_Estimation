@@ -4,7 +4,7 @@ class CSNetHRLite(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
         self.image_size = image_size
-        self.classifier_activation = 'sigmoid'
+        self.classifier_activation = 'relu'
         self.config = None
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
@@ -16,18 +16,11 @@ class CSNetHRLite(object):
         self.kernel_initializer = tf.keras.initializers.VarianceScaling(scale=2.0, mode="fan_out",
                                                   distribution="truncated_normal")
         # Set Sync batch normalization when use multi gpu
-        if self.use_multi_gpu:
-            self.batch_norm = tf.keras.layers.experimental.SyncBatchNormalization
-        else:
-            self.batch_norm = tf.keras.layers.BatchNormalization
+        self.batch_norm = tf.keras.layers.BatchNormalization
 
         # Set model hyper parameters value
         self.config = {
-            'stage1_kernel': 5, 'stage1_units': 48, 
-            'stage2_kernel': 3, 'stage2_units': 72,
-            'stage3_kernel': 5, 'stage3_layers': 3, 'stage3_expand': 1, 'stage3_units': 104,
-            'stage4_kernel': 3, 'stage4_layers': 4, 'stage4_expand': 3, 'stage4_units': 144,
-            'stage5_layers': 4, 'stage5_expand': 4, 'stage5_units': 224
+            'stage1_units': 16, 'stage2_units': 40, 'stage3_layers': 3, 'stage3_expand': 4, 'stage3_units': 72, 'stage4_layers': 3, 'stage4_expand': 4, 'stage4_units': 128, 'stage5_layers': 7, 'stage5_expand': 6, 'stage5_units': 160, 'stage6_layers': 5, 'stage6_expand': 6, 'stage6_units': 240, 'aspp_units': 272, 'aspp_dropout': 0.5
         }
 
     def correct_pad(self, inputs, kernel_size):
@@ -197,7 +190,7 @@ class CSNetHRLite(object):
         return x
 
     def deconv_block(self, x: tf.Tensor, out_filters: int, block_id: int):
-        x = tf.keras.layers.UpSampling2D((2, 2), interpolation='nearest', name='deconv_nearest_upsample_{0}'.format(block_id))(x)
+        x = tf.keras.layers.UpSampling2D((2, 2), interpolation='bilinear', name='deconv_bilinear_upsample_{0}'.format(block_id))(x)
 
         x = tf.keras.layers.Conv2D(filters=out_filters,
                                    kernel_size=(1, 1),
@@ -224,6 +217,17 @@ class CSNetHRLite(object):
     
     def fusion_block(self, x: tf.Tensor, skip: tf.Tensor, in_filters: int,
                    kernel_size: int, block_id: int):
+        skip = tf.keras.layers.Conv2D(filters=in_filters,
+                        kernel_size=(1, 1),
+                        strides=(1, 1),
+                        padding='same',
+                        use_bias=False,
+                        kernel_initializer=self.kernel_initializer,
+                        name='skip_conv_{0}'.format(block_id))(skip)
+        skip = self.batch_norm(epsilon=self.EPSILON,
+                            momentum=self.MOMENTUM,
+                            name='skip_bn_{0}'.format(block_id))(skip)
+
         x = tf.keras.layers.Concatenate(name='fusion_concat_{0}'.format(block_id),)([x, skip])
         x = tf.keras.layers.Conv2D(filters=in_filters,
                                    kernel_size=(1, 1),
@@ -269,7 +273,7 @@ class CSNetHRLite(object):
         
         size_before = tf.keras.backend.int_shape(x)
         b4 = tf.keras.layers.experimental.preprocessing.Resizing(*size_before[1:3],
-                                                                 interpolation='nearest',
+                                                                 interpolation='bilinear',
                                                                  name='aspp_b4_resize')(b4)
         
         # b0
@@ -307,15 +311,17 @@ class CSNetHRLite(object):
         return x
 
     def classifier(self, x: tf.Tensor, upsample: bool) -> tf.Tensor:
+        if upsample:
+            x = tf.keras.layers.UpSampling2D(size=(2, 2),
+                                            interpolation='bilinear',
+                                            name='resized_model_output')(x)
+
         x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
         if self.classifier_activation != None:
             x = tf.keras.layers.Activation(self.classifier_activation, name='classifier_activation')(x)
-        if upsample:
-            x = tf.keras.layers.UpSampling2D(size=(2, 2),
-                                            interpolation='nearest',
-                                            name='resized_model_output')(x)
+
         return x
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
@@ -324,29 +330,34 @@ class CSNetHRLite(object):
         # 32 - 48 - 64 - 96 - 128 - 256
         stem_units = 32
         
-        stage1_kernel = hp.Int("stage1_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage1_kernel']
-        stage1_units =  hp.Int("stage1_units", min_value=32, max_value=48, step=8) if hp is not None else self.config['stage1_units']
+        stage1_kernel = 3
+        stage1_units =  hp.Int("stage1_units", min_value=16, max_value=32, step=8) if hp is not None else self.config['stage1_units']
 
-        stage2_kernel = hp.Int("stage2_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage2_kernel']
-        stage2_units = hp.Int("stage2_units", min_value=56, max_value=72, step=8) if hp is not None else self.config['stage2_units']
+        stage2_kernel = 3
+        stage2_units = hp.Int("stage2_units", min_value=40, max_value=56, step=8) if hp is not None else self.config['stage2_units']
         
-        stage3_kernel = hp.Int("stage3_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage3_kernel']
+        stage3_kernel = 3
         stage3_layers = hp.Int("stage3_layers", min_value=2, max_value=3, step=1) if hp is not None else self.config['stage3_layers']
-        stage3_expand = hp.Int("stage3_expand", min_value=1, max_value=6, step=2) if hp is not None else self.config['stage3_expand']
-        stage3_units = hp.Int("stage3_units", min_value=88, max_value=104, step=8) if hp is not None else self.config['stage3_units']
+        stage3_expand = hp.Int("stage3_expand", min_value=2, max_value=4, step=2) if hp is not None else self.config['stage3_expand']
+        stage3_units = hp.Int("stage3_units", min_value=56, max_value=72, step=8) if hp is not None else self.config['stage3_units']
 
-        stage4_kernel = hp.Int("stage4_kernel", min_value=3, max_value=5, step=2) if hp is not None else self.config['stage4_kernel']
-        stage4_layers = hp.Int("stage4_layers", min_value=3, max_value=4, step=1) if hp is not None else self.config['stage4_layers']
-        stage4_expand = hp.Int("stage4_expand", min_value=1, max_value=6, step=2) if hp is not None else self.config['stage4_expand']
+        stage4_kernel = 3
+        stage4_layers = hp.Int("stage4_layers", min_value=3, max_value=5, step=1) if hp is not None else self.config['stage4_layers']
+        stage4_expand = hp.Int("stage4_expand", min_value=2, max_value=4, step=2) if hp is not None else self.config['stage4_expand']
         stage4_units = hp.Int("stage4_units", min_value=112, max_value=144, step=16) if hp is not None else self.config['stage4_units']
 
         stage5_kernel = 3
-        stage5_layers = hp.Int("stage5_layers", min_value=4, max_value=8, step=1) if hp is not None else self.config['stage5_layers']
+        stage5_layers = hp.Int("stage5_layers", min_value=4, max_value=7, step=1) if hp is not None else self.config['stage5_layers']
         stage5_expand = hp.Int("stage5_expand", min_value=4, max_value=6, step=2) if hp is not None else self.config['stage5_expand']
-        stage5_units = hp.Int("stage5_units", min_value=224, max_value=256, step=16) if hp is not None else self.config['stage5_units']
+        stage5_units = hp.Int("stage5_units", min_value=144, max_value=176, step=16) if hp is not None else self.config['stage5_units']
 
-        aspp_units = 256
-        aspp_dropout = 0.1
+        stage6_kernel = 3
+        stage6_layers = hp.Int("stage6_layers", min_value=5, max_value=7, step=1) if hp is not None else self.config['stage6_layers']
+        stage6_expand = hp.Int("stage6_expand", min_value=4, max_value=6, step=2) if hp is not None else self.config['stage6_expand']
+        stage6_units = hp.Int("stage6_units", min_value=240, max_value=272, step=16) if hp is not None else self.config['stage6_units']
+
+        aspp_units = hp.Int("aspp_units", min_value=240, max_value=272, step=16) if hp is not None else self.config['aspp_units']
+        aspp_dropout = hp.Float("aspp_dropout", min_value=0.1, max_value=0.5, step=0.1) if hp is not None else self.config['aspp_dropout']
 
         # 256x256 os1
         input_tensor = tf.keras.Input(shape=(*self.image_size, 3))
@@ -354,10 +365,10 @@ class CSNetHRLite(object):
         # 16 24 40 80 112 192 320
 
         # Stem conv
-        stem = self.stem_block(x=input_tensor, in_filters=stem_units, stride=1)
+        stem = self.stem_block(x=input_tensor, in_filters=stem_units, stride=2)
 
         # Stage 1 : 128x128 os2
-        stage1 = self.conv_block(x=stem, in_filters=stem_units, out_filters=stage1_units, kernel_size=stage1_kernel, stride=2, block_id='stage1_in')
+        stage1 = self.conv_block(x=stem, in_filters=stem_units, out_filters=stage1_units, kernel_size=stage1_kernel, stride=1, block_id='stage1_in')
         stage1 = self.conv_block(x=stage1, in_filters=stage1_units, out_filters=stage1_units, kernel_size=stage1_kernel, stride=1, block_id='stage1_{0}'.format(1))
         
         # Stage 2: 64x64 os4
@@ -379,9 +390,20 @@ class CSNetHRLite(object):
         for i in range(stage5_layers):
             stage5 = self.sep_conv_block(x=stage5, in_filters=stage5_units, out_filters=stage5_units, expand_ratio=stage5_expand, kernel_size=stage5_kernel, stride=1, block_id='stage5_{0}'.format(i+1), use_se=True)
 
+        # Stage 6: 16x16 os16
+        stage6 = self.sep_conv_block(x=stage5, in_filters=stage5_units, out_filters=stage6_units, expand_ratio=stage6_expand, kernel_size=stage6_kernel, stride=2, block_id='stage6_in', use_se=True)
+        for i in range(stage6_layers):
+            stage6 = self.sep_conv_block(x=stage6, in_filters=stage6_units, out_filters=stage6_units, expand_ratio=stage6_expand, kernel_size=stage6_kernel, stride=1, block_id='stage6_{0}'.format(i+1), use_se=True)
+
         # embedding lightweight Atrous Spatial Pyramid Pooling(ASPP)
         # Image Feature branch
-        x = self.aspp(x=stage5, in_filters=stage5_units, out_filters=aspp_units, dropout_rate=aspp_dropout)
+        x = self.aspp(x=stage6, in_filters=stage6_units, out_filters=aspp_units, dropout_rate=aspp_dropout)
+
+        # os32 decode -> 16x16 (os16)
+        x = self.deconv_block(x=x, out_filters=stage5_units, block_id='decode_os16_deconv')
+        x = self.fusion_block(x=x, skip=stage5, in_filters=stage5_units, kernel_size=3, block_id='decode_os16_fusion')
+        x = self.sep_conv_block(x=x, in_filters=stage5_units, out_filters=stage5_units, expand_ratio=1, kernel_size=3, stride=1, block_id='decode_os16_output')
+
 
         # os16 decode -> 32x32 (os8)
         x = self.deconv_block(x=x, out_filters=stage3_units, block_id='decode_os8_deconv')
@@ -397,14 +419,9 @@ class CSNetHRLite(object):
         x = self.deconv_block(x=x, out_filters=stage1_units, block_id='decode_os2_deconv')
         x = self.fusion_block(x=x, skip=stage1, in_filters=stage1_units, kernel_size=3, block_id='decode_os2_fusion')
         x = self.sep_conv_block(x=x, in_filters=stage1_units, out_filters=stage1_units, expand_ratio=1, kernel_size=3, stride=1, block_id='decode_os2_output')
-
-        # os2 decode -> 256x256 (os2)
-        x = self.deconv_block(x=x, out_filters=stem_units, block_id='decode_os1_deconv')
-        x = self.fusion_block(x=x, skip=stem, in_filters=stem_units, kernel_size=3, block_id='decode_os1_fusion')
-        x = self.sep_conv_block(x=x, in_filters=stem_units, out_filters=stem_units, expand_ratio=1, kernel_size=3, stride=1, block_id='decode_os1_output')
        
        # os2 classifer -> 256x256
-        x = self.classifier(x=x, upsample=False)
+        x = self.classifier(x=x, upsample=True)
 
         model = tf.keras.models.Model(inputs=input_tensor, outputs=x)
         print('Model parameters => {0}'.format(model.count_params()))

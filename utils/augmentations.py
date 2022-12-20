@@ -10,6 +10,8 @@ class Augmentation(object):
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
         depth /= 10.
+        image = tf.cast(image, tf.float32)
+        depth = tf.cast(depth, tf.float32)
         return (image, depth)
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
@@ -55,7 +57,7 @@ class Augmentation(object):
     
     def random_rotate(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         # Degrees to Radian
-        upper = 35 * (3.14 / 180.0)
+        upper = 15 * (3.14 / 180.0)
 
         rand_degree = tf.random.uniform([], minval=-upper, maxval=upper)
 

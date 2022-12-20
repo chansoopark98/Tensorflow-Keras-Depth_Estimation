@@ -5,7 +5,7 @@ from typing import Union
 AUTO = tf.data.experimental.AUTOTUNE
 
 class DataLoadHandler(object):
-    def __init__(self, data_dir: str, dataset_name: str):
+    def __init__(self, data_dir: str, dataset_name: str, percentage: int = 100):
         """
         This class performs pre-process work for each dataset and load tfds.
         Args:
@@ -13,6 +13,7 @@ class DataLoadHandler(object):
         """
         self.data_dir = data_dir
         self.dataset_name = dataset_name
+        self.percentage = percentage
         self.__select_dataset()
 
     def __select_dataset(self):
@@ -22,21 +23,18 @@ class DataLoadHandler(object):
         """
             Loads a custom dataset specified by the user.
         """
-        percentage = 10
-        # self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train[:{0}%]'.format(percentage))
-        self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train')
+        
+        self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
+        # self.train_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='train')
         self.valid_data = tfds.load(name=self.dataset_name, data_dir=self.data_dir, split='validation')
         self.test_data = self.valid_data
 
-        if self.dataset_name == 'nyu_depth_v2':
+        if self.dataset_name == 'nyu_depth_v2' and self.percentage == 100:
             self.number_train = 47584
             self.number_valid = 654
         else:
             self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
             self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
-
-        # self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-        # self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_test = self.number_valid
 
         # Print  dataset meta data
@@ -45,7 +43,7 @@ class DataLoadHandler(object):
         print("Number of test dataset = {0}".format(self.number_test))
 
 class GenerateDatasets(DataLoadHandler):
-    def __init__(self, data_dir: str, image_size: tuple, batch_size: int, dataset_name: str, is_tunning: bool = False):
+    def __init__(self, data_dir: str, image_size: tuple, batch_size: int, dataset_name: str, is_tunning: bool = False, percentage: int = 100):
         """
         Args:
             data_dir         (str)    : Dataset relative path (default : './datasets/').
@@ -57,8 +55,9 @@ class GenerateDatasets(DataLoadHandler):
         self.batch_size = batch_size
         self.dataset_name = dataset_name
         self.is_tunning = is_tunning
-        self.augmentations = Augmentation(image_size=self.image_size, max_crop_scale=1.5)
-        super().__init__(data_dir=self.data_dir, dataset_name=self.dataset_name)
+        self.percentage = percentage
+        self.augmentations = Augmentation(image_size=self.image_size, max_crop_scale=1.3)
+        super().__init__(data_dir=self.data_dir, dataset_name=self.dataset_name, percentage=self.percentage)
 
 
     @tf.function
@@ -118,8 +117,8 @@ class GenerateDatasets(DataLoadHandler):
             image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
             depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_rotate(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)
 
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
