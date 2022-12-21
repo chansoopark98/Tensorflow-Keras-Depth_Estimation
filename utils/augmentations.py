@@ -7,11 +7,12 @@ class Augmentation(object):
         self.image_size = image_size
         self.max_crop_scale = max_crop_scale
 
+
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
         depth /= 10.
-        image = tf.cast(image, tf.float32)
-        depth = tf.cast(depth, tf.float32)
+        # image = tf.cast(image, tf.float32)
+        # depth = tf.cast(depth, tf.float32)
         return (image, depth)
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
@@ -44,7 +45,7 @@ class Augmentation(object):
         image = tf.image.resize(image, size=(new_h, new_w),
                             method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=(new_h, new_w),
-                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+                                method=tf.image.ResizeMethod.BILINEAR)
 
         rgbd = tf.concat([image, depth], axis=-1)
         rgbd = tf.image.random_crop(

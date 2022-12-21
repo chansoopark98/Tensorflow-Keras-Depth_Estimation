@@ -4,7 +4,7 @@ class CSNetHRLite(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
         self.image_size = image_size
-        self.classifier_activation = 'relu'
+        self.classifier_activation = 'sigmoid'
         self.config = None
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
