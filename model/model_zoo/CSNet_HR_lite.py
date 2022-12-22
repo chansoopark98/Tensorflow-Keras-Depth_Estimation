@@ -190,7 +190,7 @@ class CSNetHRLite(object):
         return x
 
     def deconv_block(self, x: tf.Tensor, out_filters: int, block_id: int):
-        x = tf.keras.layers.UpSampling2D((2, 2), interpolation='bilinear', name='deconv_bilinear_upsample_{0}'.format(block_id))(x)
+        x = tf.keras.layers.UpSampling2D((2, 2), interpolation='nearest', name='deconv_bilinear_upsample_{0}'.format(block_id))(x)
 
         x = tf.keras.layers.Conv2D(filters=out_filters,
                                    kernel_size=(1, 1),
@@ -273,7 +273,7 @@ class CSNetHRLite(object):
         
         size_before = tf.keras.backend.int_shape(x)
         b4 = tf.keras.layers.experimental.preprocessing.Resizing(*size_before[1:3],
-                                                                 interpolation='bilinear',
+                                                                 interpolation='nearest',
                                                                  name='aspp_b4_resize')(b4)
         
         # b0
@@ -313,7 +313,7 @@ class CSNetHRLite(object):
     def classifier(self, x: tf.Tensor, upsample: bool) -> tf.Tensor:
         if upsample:
             x = tf.keras.layers.UpSampling2D(size=(2, 2),
-                                            interpolation='bilinear',
+                                            interpolation='nearest',
                                             name='resized_model_output')(x)
 
         x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,

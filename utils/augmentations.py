@@ -10,6 +10,9 @@ class Augmentation(object):
 
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
+
+        depth = tf.image.convert_image_dtype(depth, tf.float32)
+
         depth /= 10.
         # image = tf.cast(image, tf.float32)
         # depth = tf.cast(depth, tf.float32)
@@ -45,7 +48,7 @@ class Augmentation(object):
         image = tf.image.resize(image, size=(new_h, new_w),
                             method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=(new_h, new_w),
-                                method=tf.image.ResizeMethod.BILINEAR)
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         rgbd = tf.concat([image, depth], axis=-1)
         rgbd = tf.image.random_crop(

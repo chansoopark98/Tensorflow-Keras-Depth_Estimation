@@ -23,24 +23,16 @@ if __name__ == "__main__":
         # depth = depth[0]
         
         rows = 1
-        cols = 3
-        
-        dy_true, dx_true = tf.abs(tf.image.image_gradients(depth))
-        
+        cols = 2
 
         fig = plt.figure()
         
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(tf.sqrt(dx_true[0]))
-        ax0.set_title('Gx gradient')
-        ax0.axis("off")
-        
-        ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(tf.sqrt(dy_true[0]))
-        ax0.set_title('Gy gradient')
+        ax0.imshow(img)
+        ax0.set_title('Image')
         ax0.axis("off")
 
-        ax0 = fig.add_subplot(rows, cols, 3)
+        ax0 = fig.add_subplot(rows, cols, 2)
         ax0.imshow(depth[0])
         ax0.set_title('Depth map')
         ax0.axis("off")

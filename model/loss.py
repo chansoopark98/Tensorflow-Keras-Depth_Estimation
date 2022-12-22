@@ -53,10 +53,16 @@ class DepthEstimationLoss():
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
         
-        l1_loss = tf.reduce_mean(tf.abs(y_pred - y_true), axis=3, keepdims=True)
-        ssim_loss = tf.reduce_mean(self.ssim(y_pred, y_true), axis=3, keepdims=True)
+        l1_loss = tf.reduce_mean(tf.abs(y_pred - y_true), axis=-1) #, keepdims=True
+        ssim_loss = tf.reduce_mean(self.ssim(y_pred, y_true), axis=-1) # , keepdims=True
 
-        projection_loss = 0.85 * ssim_loss + (1 - 0.85) * l1_loss
+        print('l1_WITHOUT',tf.abs(y_pred - y_true))
+        print('ssim_WITHOUT',self.ssim(y_pred, y_true))
+
+        print('l1_loss',l1_loss)
+        print('ssim_loss',ssim_loss)
+
+        projection_loss = (0.85 * ssim_loss) + (0.15 * l1_loss)
         projection_loss = tf.reduce_mean(projection_loss)
 
         smooth_loss = self.get_smooth_loss(y_pred, y_true)
