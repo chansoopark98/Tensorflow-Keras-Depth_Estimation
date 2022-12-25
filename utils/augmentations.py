@@ -12,20 +12,24 @@ class Augmentation(object):
         image /= 255.
 
         depth = tf.image.convert_image_dtype(depth, tf.float32)
-
         depth /= 10.
+
+        depth = tf.where(depth==0., 1., depth)
+        depth = 1. - depth
+        # depth = 1000 / tf.clip_by_value(depth * 100, 10, 1000)
+        # depth = 10 - depth
         # image = tf.cast(image, tf.float32)
         # depth = tf.cast(depth, tf.float32)
         return (image, depth)
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        random_gamma = tf.random.uniform([], 0.9, 1.1)
+        random_gamma = tf.random.uniform([], 0.95, 1.05)
         image = image ** random_gamma
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 
     def random_brightness(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        random_bright = tf.random.uniform([], 0.75, 1.25)
+        random_bright = tf.random.uniform([], 0.8, 1.2)
         image = image * random_bright
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
@@ -61,11 +65,11 @@ class Augmentation(object):
     
     def random_rotate(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         # Degrees to Radian
-        upper = 15 * (3.14 / 180.0)
+        upper = 20 * (3.14 / 180.0)
 
         rand_degree = tf.random.uniform([], minval=-upper, maxval=upper)
 
-        image = tfa.image.rotate(image, rand_degree, interpolation='bilinear')
+        image = tfa.image.rotate(image, rand_degree)
         depth = tfa.image.rotate(depth, rand_degree)
 
         return (image, depth)

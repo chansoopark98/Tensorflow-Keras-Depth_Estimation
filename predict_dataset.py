@@ -10,7 +10,7 @@ K = tf.keras.backend
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch_size",          type=int,    help="Evaluation batch size",
-                    default=8)
+                    default=1)
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
@@ -20,14 +20,14 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='1221/_Bs-32_Ep-100_Lr-0.0002_ImSize-256_Opt-adam_multi-gpu_1221_adamW_single_best_rmse.h5')
+                    default='1223/_Bs-16_Ep-30_Lr-0.001_ImSize-416_Opt-adam_multi-gpu_1223_adamW_single-newloss_best_rmse.h5')
 
 args = parser.parse_args()
 
 if __name__ == '__main__':
     data_loader = GenerateDatasets(data_dir='./datasets/', batch_size=args.batch_size, image_size=args.image_size, dataset_name='nyu_depth_v2') 
 
-    test_data = data_loader.get_testData(test_data=data_loader.test_data)
+    test_data = data_loader.get_testData(test_data=data_loader.valid_data)
 
     # Set target transforms
     model = ModelBuilder(image_size=args.image_size).build_model()

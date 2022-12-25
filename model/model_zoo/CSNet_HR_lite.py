@@ -4,7 +4,7 @@ class CSNetHRLite(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
         self.image_size = image_size
-        self.classifier_activation = 'sigmoid'
+        self.classifier_activation = None
         self.config = None
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
@@ -316,7 +316,8 @@ class CSNetHRLite(object):
                                             interpolation='nearest',
                                             name='resized_model_output')(x)
 
-        x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
+        x = tf.keras.layers.Conv2D(filters=1, kernel_size=3, strides=1, use_bias=True,
+                                    padding='same',
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
         if self.classifier_activation != None:

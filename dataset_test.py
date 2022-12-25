@@ -4,7 +4,7 @@ from utils.load_datasets import GenerateDatasets
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = GenerateDatasets(data_dir='./datasets/', image_size=(480, 640), batch_size=1, dataset_name='nyu_depth_v2')
+dataset = GenerateDatasets(data_dir='./datasets/', image_size=(360, 480), batch_size=1, dataset_name='nyu_depth_v2')
 
 test_data = dataset.get_trainData(dataset.train_data)
 
@@ -17,23 +17,21 @@ if __name__ == "__main__":
 
     i = 1
     for img, depth in test_data.take(100):
-        img = img[0]
 
         depth = tf.cast(depth, tf.float32)
-        # depth = depth[0]
-        
+               
         rows = 1
         cols = 2
-
+        img = img[0]
         fig = plt.figure()
         
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img)
+        ax0.imshow(img, vmin=0.0, vmax=1.0)
         ax0.set_title('Image')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(depth[0])
+        ax0.imshow(depth[0], vmin=0.0, vmax=1.0)
         ax0.set_title('Depth map')
         ax0.axis("off")
 

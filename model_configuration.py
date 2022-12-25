@@ -116,9 +116,10 @@ class ModelConfiguration(GenerateDatasets):
         tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR + 'train/' +
                                   self.MODEL_PREFIX, write_graph=True, write_images=True)
 
+    
         polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.INIT_LR,
                                                                   decay_steps=self.EPOCHS,
-                                                                  end_learning_rate=self.INIT_LR * 0.01, power=0.9)
+                                                                  end_learning_rate=self.INIT_LR * 0.1, power=0.9)
 
         lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
         
