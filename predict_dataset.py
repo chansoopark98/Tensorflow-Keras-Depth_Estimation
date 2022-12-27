@@ -14,13 +14,13 @@ parser.add_argument("--batch_size",          type=int,    help="Evaluation batch
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(256, 256))
+                    default=(360, 480))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='1223/_Bs-16_Ep-30_Lr-0.001_ImSize-416_Opt-adam_multi-gpu_1223_adamW_single-newloss_best_rmse.h5')
+                    default='1227/_Bs-16_Ep-50_Lr-0.0002_ImSize-360_Opt-adamW_multi-gpu_1227_EfficientNetV0-newDepthScale-test_best_loss.h5')
 
 args = parser.parse_args()
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     model.summary()
 
     # # Set colormap
-    sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
+    sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=10))
     # plt.colorbar(sm)
 
     for img, depth in test_data.take(100):
@@ -53,17 +53,17 @@ if __name__ == '__main__':
         cols = 4
         fig = plt.figure()
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img[0], cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(img[0], cmap='plasma', vmin=0.0, vmax=10.0)
         ax0.set_title('img')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(pred[0], cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(pred[0], cmap='plasma', vmin=0.0, vmax=10.0)
         ax0.set_title('pred_depth')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 3)
-        ax0.imshow(depth[0], cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(depth[0], cmap='plasma', vmin=0.0, vmax=10.0)
         ax0.set_title('gt')
         ax0.axis("off")
 

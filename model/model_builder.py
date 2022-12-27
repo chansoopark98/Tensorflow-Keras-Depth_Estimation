@@ -27,15 +27,14 @@ class ModelBuilder(object):
         #                     classifier_activation=None,
         #                     ).build_model()
 
-        # from .model_zoo.EfficientDeepLab import EfficientDeepLab
-        # model = EfficientDeepLab(image_size=self.image_size,
-        #                     classifier_activation=None,
-        #                     ).build_model()
+        from .model_zoo.EfficientDeepLab import EfficientDeepLab
+        model = EfficientDeepLab(image_size=self.image_size,
+                            classifier_activation=None,
+                            ).build_model()
 
-        from .model_zoo.Unet import unet
-
-        model_input, model_output = unet(input_shape=(*self.image_size, 3), base_channel=64, output_channel=1, use_logits=False)
-        model = tf.keras.models.Model(inputs=model_input, outputs=model_output)
+        # from .model_zoo.Unet import unet
+        # model_input, model_output = unet(input_shape=(*self.image_size, 3), base_channel=64, output_channel=1, use_logits=False)
+        # model = tf.keras.models.Model(inputs=model_input, outputs=model_output)
         
         if self.use_weight_decay:
             for layer in model.layers:

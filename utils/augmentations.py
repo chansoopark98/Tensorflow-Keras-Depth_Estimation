@@ -10,16 +10,20 @@ class Augmentation(object):
 
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
+        # depth = 10. / tf.clip_by_value(depth, 0.1, 10)
+        # depth = tf.where(depth>10., 0., depth)
 
-        depth = tf.image.convert_image_dtype(depth, tf.float32)
-        depth /= 10.
-
-        depth = tf.where(depth==0., 1., depth)
-        depth = 1. - depth
-        # depth = 1000 / tf.clip_by_value(depth * 100, 10, 1000)
-        # depth = 10 - depth
-        # image = tf.cast(image, tf.float32)
-        # depth = tf.cast(depth, tf.float32)
+        depth = 10. / depth
+        
+        depth = tf.where(tf.math.is_inf(depth), 0., depth)
+        depth = tf.clip_by_value(depth, 0., 10)
+        
+        
+        # depth = 10 / depth
+        # tf.math.is_nan
+        # depth = tf.where(depth==0., 10., depth)
+        # depth = 10. - depth
+        
         return (image, depth)
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:

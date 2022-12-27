@@ -93,7 +93,7 @@ class DepthEstimationLoss():
     #     # (w1 * l_ssim) + (w2 * K.mean(l_edges)) + (w3 * K.mean(l_depth)
     #     return l_ssim + (l_depth * tf.cast(0.1, tf.float32))
 
-    def depth_loss(self, y_true, y_pred, theta=0.1, maxDepthVal=1.0):
+    def depth_loss(self, y_true, y_pred, theta=0.1, maxDepthVal=10.0):
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
         # Point-wise depth

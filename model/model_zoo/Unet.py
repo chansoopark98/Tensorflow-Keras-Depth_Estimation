@@ -36,8 +36,6 @@ def conv_module(x, channels, kernel_size=3, strides=1,
     return x
 
 def deconv_module(x, channels, kernel_size=3, strides=2, activation='swish', bn_momentum=0.99, prefix='name', padding='same'):
-    x = tf.keras.layers.UpSampling2D((2, 2), interpolation='nearest', name='deconv_bilinear_upsample_{0}'.format(prefix))(x)
-
     x = Conv2D(channels,
                       kernel_size=(kernel_size, kernel_size),
                       strides=(1, 1),
@@ -86,7 +84,10 @@ def unet(input_shape=(300, 300, 3), base_channel=8, output_channel=1, use_logits
                 activation=activation, dropout=0.0, prefix='conv5_1')
     conv5_2 = conv_module(x=conv5_1, channels=base_channel * 16, kernel_size=3, strides=1, bn_momentum=bn_momentum,
                 activation=activation, dropout=0.0, prefix='conv5_2')
-
+    
+    size_before = tf.keras.backend.int_shape(conv4_2)
+    conv5_2 = tf.keras.layers.experimental.preprocessing.Resizing(
+            *size_before[1:3])(conv5_2)
     deconv_5 = deconv_module(conv5_2, channels=base_channel * 8, kernel_size=3, strides=2, prefix='deconv_os16')
     
     decoder = Concatenate()([conv4_2, deconv_5])
@@ -96,6 +97,9 @@ def unet(input_shape=(300, 300, 3), base_channel=8, output_channel=1, use_logits
     decoder = conv_module(x=decoder, channels=base_channel * 8, kernel_size=3, strides=1, bn_momentum=bn_momentum,
                 activation=activation, dropout=0.0, prefix='decoder_4_2')
 
+    size_before = tf.keras.backend.int_shape(conv3_2)
+    decoder = tf.keras.layers.experimental.preprocessing.Resizing(
+            *size_before[1:3])(decoder)
     decoder = deconv_module(decoder, channels=base_channel * 4, kernel_size=3, strides=2, prefix='deconv_os8')
     decoder = Concatenate()([conv3_2, decoder])
 
@@ -104,6 +108,9 @@ def unet(input_shape=(300, 300, 3), base_channel=8, output_channel=1, use_logits
     decoder = conv_module(x=decoder, channels=base_channel * 4, kernel_size=3, strides=1, bn_momentum=bn_momentum,
                 activation=activation, dropout=0.0, prefix='decoder_3_2')
 
+    size_before = tf.keras.backend.int_shape(conv2_2)
+    decoder = tf.keras.layers.experimental.preprocessing.Resizing(
+            *size_before[1:3])(decoder)
     decoder = deconv_module(decoder, channels=base_channel * 2, kernel_size=3, strides=2, prefix='deconv_os4')
     decoder = Concatenate()([conv2_2, decoder])
 
@@ -112,6 +119,9 @@ def unet(input_shape=(300, 300, 3), base_channel=8, output_channel=1, use_logits
     decoder = conv_module(x=decoder, channels=base_channel * 2, kernel_size=3, strides=1, bn_momentum=bn_momentum,
                           activation=activation, dropout=0.0, prefix='decoder_2_2')
 
+    size_before = tf.keras.backend.int_shape(conv1_2)
+    decoder = tf.keras.layers.experimental.preprocessing.Resizing(
+            *size_before[1:3])(decoder)
     decoder = deconv_module(decoder, channels=base_channel, kernel_size=3, strides=2, prefix='deconv_os2')
     decoder = Concatenate()([conv1_2, decoder])
 

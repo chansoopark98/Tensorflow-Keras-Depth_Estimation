@@ -20,27 +20,32 @@ class EfficientDeepLab(object):
 
 
     def classifier(self, x: tf.Tensor, upsample: bool) -> tf.Tensor:
-        if upsample:
-            x = tf.keras.layers.UpSampling2D(size=(4, 4),
-                                            name='resized_model_output')(x)
+
         x = tf.keras.layers.Conv2D(filters=1, kernel_size=3, strides=1, use_bias=True,
                                     padding='same',
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
-
         if self.classifier_activation != None:
             x = tf.keras.layers.Activation(self.classifier_activation, name='classifier_activation')(x)
+
+        if upsample:
+            x = tf.keras.layers.UpSampling2D(size=(4, 4),
+                                            name='resized_model_output')(x)
 
         return x
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
-        from .EfficientNetV2 import EfficientNetV2S
+        from .EfficientNetV2 import EfficientNetV2S, EfficientNetV2B0
         from .DeepLabV3Plus import deepLabV3Plus
-        base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0)
+        # base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0)
+        # skip = base.get_layer('add_4').output
+        # x = base.get_layer('add_34').output
+        base = EfficientNetV2B0(input_shape=(*self.image_size, 3), num_classes=0)
+        
         input_tensor = base.input
         
-        skip = base.get_layer('add_4').output
-        x = base.get_layer('add_34').output
+        skip = base.get_layer('add').output
+        x = base.get_layer('add_14').output
 
         output = deepLabV3Plus(features=[skip, x])
 
