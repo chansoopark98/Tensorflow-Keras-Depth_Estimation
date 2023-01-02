@@ -1,38 +1,26 @@
 import tensorflow as tf
-from utils.load_datasets import DatasetGenerator
-from utils.plot_generator import plot_generator
-from model.model_builder import base_model
 import matplotlib.pyplot as plt
-import argparse
 import cv2
 import numpy as np
-import open3d as o3d
-from tensorflow.python.saved_model import tag_constants
+import pyk4a
+from pyk4a import Config, PyK4A
+
+"""
+https://excelsior-cjh.tistory.com/167
+
+"""
+def tf_pca(x):
+    
+    x_cen = x - tf.reduce_mean(x, axis=0)
+    s, u, v = tf.linalg.svd(x_cen)
+
+    return s, v.numpy()
 
 
-parser = argparse.ArgumentParser()
-
-# Set Convert to SavedMoel
-parser.add_argument("--saved_model_path", type=str,   help="저장된 모델 가중치 경로",
-                    default='./checkpoints/0712/_0712_B8_E100_LR-0.001_320-320_train_HRNet_best_loss.h5')
-parser.add_argument("--test_img_path", type=str,   help="테스트 할 이미지 경로",
-                    default='./test_img2.jpg')
-parser.add_argument("--image_size",       type=tuple,  help="조정할 이미지 크기 설정",
-                    default=(640, 480))
-
-# Set dataset directory path 
-parser.add_argument("--dataset_dir",      type=str,    help="데이터셋 다운로드 디렉토리 설정",
-                    default='./datasets/')
-
-
-args = parser.parse_args()
-     
-
-# tf.debugging.set_log_device_placement(True)
-
-model = base_model(image_size=args.image_size, output_channel=1)
-model.load_weights(args.saved_model_path)
-
+def numpy2_pca(X: np.ndarray):
+    X_cen = X - X.mean(axis=0)  # 평균을 0으로
+    U, D, V_t = np.linalg.svd(X_cen)
+    return D, V_t
 
 
 def project_p3d(p3d, cam_scale, K):
@@ -55,160 +43,100 @@ def draw_arrow(img, p2ds, thickness=1):
     img = cv2.arrowedLine(img, (p2ds[0,0], p2ds[0,1]), (p2ds[3,0], p2ds[3,1]), (255,0,0), thickness)
     return img
 
+def _draw_transform(img, trans, camera_intrinsic):
+    arrow = np.array([[0,0,0],[0.05,0,0],[0,0.05,0],[0,0,0.05]])
+    arrow = np.dot(arrow, trans[:3, :3].T) + trans[:3, 3]
+    arrow_p2ds = project_p3d(arrow, 10, camera_intrinsic)
+    img = draw_arrow(img, arrow_p2ds, thickness=2)
+    return img
+
+
 if __name__ == "__main__":
 
-    # Load TensorRT Model
-    converted_model_path = '/home/park/park/Tensorflow-Keras-Realtime-Segmentation/checkpoints/export_path_trt/1/'
-    
-    print('load_model')
-    seg_model = tf.saved_model.load(converted_model_path, tags=[tag_constants.SERVING])
-    
-    print('infer')
-    infer = seg_model.signatures['serving_default']
+    k4a = PyK4A(
+        Config(
+            color_resolution=pyk4a.ColorResolution.OFF,
+            depth_mode=pyk4a.DepthMode.NFOV_UNBINNED,
+            synchronized_images_only=False
+        )
+    )
+    k4a.start()
 
-    in_img = cv2.imread(args.test_img_path)
-    in_img = cv2.cvtColor(in_img, cv2.COLOR_BGR2RGB)
-    
-    in_img = tf.cast(in_img, tf.float32)
-    img = tf.image.resize(in_img, (args.image_size[0], args.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-    
-    img /= 255.
-    img = tf.expand_dims(img, axis=0)
+    # getters and setters directly get and set on device
+    k4a.whitebalance = 4500
+    assert k4a.whitebalance == 4500
+    k4a.whitebalance = 4510
+    assert k4a.whitebalance == 4510
 
+    while True:
+        capture = k4a.get_capture()
 
-    pred_depth = model.predict(img)
-    pred_depth = pred_depth[0]
+        # mm -> cm
+        depth = capture.depth
+        h, w = depth.shape
 
-    seg_img = tf.image.resize(in_img, (args.image_size[0], args.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-    seg_img /= 255.
-    seg_img = tf.expand_dims(seg_img, axis=0)
+        grid = np.mgrid[0:depth.shape[0],0:depth.shape[1]]
+        u, v = grid[0], grid[1]
 
-    pred_seg = infer(seg_img)
-    preds = pred_seg['output']
-
+        center_x = w // 2
+        center_y = h // 2
+        focal_length = 150.0
+        z = depth / 1000
+        adjusted_z = z / focal_length
+        x = (u - center_x) * adjusted_z
+        y = (v - center_y) * adjusted_z
+        pcd = np.stack([x,y,z], axis=-1)
         
-    output = tf.argmax(preds, axis=-1)
+        pointCloud = pcd.copy()
 
-    seg_output = output[0]
-    seg_output = (seg_output.numpy() * 127).astype(np.uint8)
+        pointCloud_area = np.zeros(pointCloud.shape)
+        pointCloud_area[center_y-20:center_y+20, center_x] = 255
+        pointCloud_area[center_y, center_x-20:center_x+20] = 255
 
-    # Get display area
-    contours, _ = cv2.findContours(seg_output, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    tmp = 0
-    display_contours = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > tmp: 
-            tmp = area
-            display_contours.append(contour)
-            
-    
-    x,y,w,h = cv2.boundingRect(display_contours[0])
-
-    
-    pred_depth *= 1000.
-    
-    pred_depth = np.where(pred_depth<=0, 1., pred_depth)
-    
-    
-    # Convert to RGB-D
-    
-    numpy_img = img[0].numpy()
-    numpy_img *= 255
-    numpy_img = numpy_img.astype(np.uint8)
-    original_img = numpy_img.copy()
-    numpy_img = cv2.cvtColor(numpy_img, cv2.COLOR_RGB2GRAY)
-    
-
+        choose_pc = pointCloud[np.where(pointCloud_area[:, :]==255)]
+        # print('choose_pc.shape', choose_pc.shape)
+        choose_pc= choose_pc.reshape(-1,3)
+        choose_pc = choose_pc[~np.isnan(choose_pc[:,2])]
+        # print('final choose_pc.shape', choose_pc.shape)
         
-    plt.imshow(pred_depth)
-    plt.show()
-    
-    # numpy_img = numpy_img[y:y+h, x:x+w]
-    # pred_depth = pred_depth[y:y+h, x:x+w]
+        # PCA 통해 주성분 벡터, 평균, 분산
+        a = choose_pc.copy()
+        b = choose_pc.copy()
+        meanarr, comparr = cv2.PCACompute(a, mean=None)
+        e, v = tf_pca(b)
 
-    # depth_mean = np.mean(pred_depth)
-    # pred_depth = np.where(pred_depth>=1, depth_mean, pred_depth)
-    
+        comparr = -comparr
+        v = -v
 
-    open3d_rgb = o3d.geometry.Image(numpy_img)
-    pred_depth = o3d.geometry.Image(pred_depth)
-    
+        print(v)
 
-    rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
-        open3d_rgb, pred_depth)
+        if comparr[2, 2] < 0:
+            comparr[2, :3] = -comparr[2, :3]
+        if v[2, 2] < 0:
+            v[2, :3] = -v[2, :3]
 
-    
+                    
+        # Target Pose 생성
+        target_pose = np.identity(4)
+        target_pose[:3,:3] = comparr.T # rotation
+        target_pose[:3,3] = meanarr # transration
 
-    pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-        rgbd_image,
-        o3d.camera.PinholeCameraIntrinsic(
-            o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
-    
-    # plt.imshow(rgbd_image.depth)
-    # plt.show()
-    
-    xyz_load = np.asarray(pcd.points)
-    # print('open3d_rgb', np.asarray(open3d_rgb).shape)
-    # print('pred_depth', np.asarray(pred_depth).shape)
-    
-    
-    # print(np_pcd.shape)
-    pc = np.zeros((480, 640, 3))
-    xyz_load = np.reshape(xyz_load, (480, 640, 3))
-    pc[:,:,0] = xyz_load[:, :, 0]
-    pc[:,:,1] = xyz_load[:, :, 1]
-    pc[:,:,2] = xyz_load[:, :, 2]
-
-    center_x = x + (w//2)
-    center_y = y + (h//2)
-    
-    choose_pc = pc[center_y-1:center_y+1, center_x-1:center_x+1]
-
-    pointCloud_area = np.zeros((480, 640), dtype=np.uint8)
-    pointCloud_area = cv2.line(pointCloud_area, (center_x-1, center_y-1), (center_x+1, center_y+1), 255, 10, cv2.LINE_AA)
-    choose_pc = pc[np.where(pointCloud_area[:, :]==255)]
-                
-    choose_pc = choose_pc[~np.isnan(choose_pc[:,2])]
-
-    meanarr, comparr, _ = cv2.PCACompute2(choose_pc, mean=None)
-
-    comparr = -comparr
-    if comparr[2, 2] < 0:
-        comparr[2, :3] = -comparr[2, :3]
-                
-    # Target Pose 생성
-    target_pose = np.identity(4)
-    target_pose[:3,:3] = comparr.T # rotation
-    target_pose[:3,3] = meanarr # transration
-
-    
-    seg_output = tf.expand_dims(seg_output, axis=-1)
-
-    mask = tf.concat([seg_output, seg_output, seg_output], axis=-1)
-    original_img = np.where(mask>=1, 255, original_img)
-
-    
-    for i in range(20):
-        print(i)
-        camera_pose = np.identity(3)
-        camera_pose[0, 0] = 322
-        camera_pose[1, 1] = 322
-        camera_pose[0, 2] = 480 //2 
-        camera_pose[1, 2] = 640 //2
+        tf_pose = tf.transpose(v).numpy()
+        # target_pose[:3, :3] = tf_pose
+        print('cv', target_pose[:3,:3])
+        print()
+        print('tf', tf_pose)
 
 
-        arrow = np.array([[0,0,0],[0.05,0,0],[0,0.05,0],[0,0,0.05]])
-        arrow = np.dot(arrow, target_pose[:3, :3].T) + target_pose[:3, 3]
-        arrow_p2ds = project_p3d(arrow.copy(), 1.0, camera_pose)
-
-
-        test = draw_arrow(original_img.copy(), arrow_p2ds, thickness=2)
+        camera_intrinsic = [[focal_length, 0, center_x],
+                            [0, focal_length, center_y],
+                            [0, 0, 1]]
+        camera_intrinsic = np.array(camera_intrinsic)
         
-        plt.imshow(test)
-        plt.show()
+        pcd = _draw_transform(img = pcd, trans=target_pose, camera_intrinsic=camera_intrinsic)
 
+        cv2.line(pcd, (center_x -20, center_y), (center_x + 20, center_y), (255, 255, 255), thickness=2)
+        cv2.line(pcd, (center_x, center_y -20), (center_x, center_y + 20), (255, 255, 255), thickness=2)
 
-
-
-
+        cv2.imshow('test', pcd)
+        cv2.waitKey(50)
