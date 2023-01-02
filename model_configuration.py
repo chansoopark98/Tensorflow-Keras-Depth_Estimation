@@ -119,7 +119,8 @@ class ModelConfiguration(GenerateDatasets):
     
         polyDecay = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.INIT_LR,
                                                                   decay_steps=self.EPOCHS,
-                                                                  end_learning_rate=self.INIT_LR * 0.1, power=0.9)
+                                                                  end_learning_rate=0, power=0.9)
+                                                                #   end_learning_rate=self.INIT_LR * 0.1, power=0.9)
 
         lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
         
@@ -133,7 +134,7 @@ class ModelConfiguration(GenerateDatasets):
         if self.OPTIMIZER_TYPE == 'sgd':
             self.optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'adam':
-            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR, amsgrad=True)
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.INIT_LR)
         elif self.OPTIMIZER_TYPE == 'radam':
             self.optimizer = tfa.optimizers.RectifiedAdam(learning_rate=self.INIT_LR,
                                                           weight_decay=0.00001,
@@ -142,7 +143,7 @@ class ModelConfiguration(GenerateDatasets):
                                                           warmup_proportion=0.1,
                                                           min_lr=0.0001)
         elif self.OPTIMIZER_TYPE == 'adamW':
-            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.0001, amsgrad=True)
+            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.00001, amsgrad=True)
         if self.MIXED_PRECISION:
             tf.keras.mixed_precision.set_global_policy('mixed_float16')
             # Wrapping optimizer by mixed precision

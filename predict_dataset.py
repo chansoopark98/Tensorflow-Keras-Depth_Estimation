@@ -14,13 +14,13 @@ parser.add_argument("--batch_size",          type=int,    help="Evaluation batch
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(360, 480))
+                    default=(256, 256))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='1227/_Bs-16_Ep-50_Lr-0.0002_ImSize-360_Opt-adamW_multi-gpu_1227_EfficientNetV0-newDepthScale-test_best_loss.h5')
+                    default='0102/_Bs-16_Ep-20_Lr-0.0002_ImSize-256_Opt-adamW_multi-gpu_0102_UNet-base32c-newDepthScale-normZeroToOne-test_best_rmse.h5')
 
 args = parser.parse_args()
 

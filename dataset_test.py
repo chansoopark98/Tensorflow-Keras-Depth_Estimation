@@ -26,12 +26,12 @@ if __name__ == "__main__":
         fig = plt.figure()
         
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img, vmin=0.0, vmax=10.0)
+        ax0.imshow(img, vmin=0.0, vmax=1.0)
         ax0.set_title('Image')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(depth[0], vmin=0.0, vmax=10.0)
+        ax0.imshow(depth[0], vmin=0.0, vmax=1.0)
         ax0.set_title('Depth map')
         ax0.axis("off")
 

@@ -13,10 +13,10 @@ DECAY = None
 BN = BatchNormalization
 # CONV_KERNEL_INITIALIZER = tf.keras.initializers.VarianceScaling(scale=2.0, mode="fan_out", distribution="truncated_normal")
 CONV_KERNEL_INITIALIZER = "he_normal"
-activation = 'swish'
+activation = 'leakyrelu'
 
 def conv_module(x, channels, kernel_size=3, strides=1,
-                bn_momentum=0.99, activation='swish', dropout=0.4, prefix='name'):
+                bn_momentum=0.99, activation='leakyrelu', dropout=0.4, prefix='name'):
     x = Conv2D(channels,
                      kernel_size=(kernel_size, kernel_size),
                      strides=(strides, strides),
@@ -35,7 +35,7 @@ def conv_module(x, channels, kernel_size=3, strides=1,
         x = Activation(activation, name=prefix+'_activation')(x)
     return x
 
-def deconv_module(x, channels, kernel_size=3, strides=2, activation='swish', bn_momentum=0.99, prefix='name', padding='same'):
+def deconv_module(x, channels, kernel_size=3, strides=2, activation='leakyrelu', bn_momentum=0.99, prefix='name', padding='same'):
     x = Conv2D(channels,
                       kernel_size=(kernel_size, kernel_size),
                       strides=(1, 1),
