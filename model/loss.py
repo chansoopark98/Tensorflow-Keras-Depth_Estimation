@@ -22,7 +22,9 @@ class DepthEstimationLoss():
         l_edges = K.mean(K.abs(dy_pred - dy_true) + K.abs(dx_pred - dx_true), axis=-1)
 
         # Structural similarity (SSIM) index
-        l_ssim = K.clip((1 - tf.image.ssim(y_true, y_pred, maxDepthVal)) * 0.5, 0, 1)
+        # l_ssim = K.clip((1 - tf.image.ssim(y_true, y_pred, maxDepthVal)) * 0.5, 0, 1)
+        ssim = tf.image.ssim(y_true, y_pred, maxDepthVal)
+        l_ssim = (1. - ssim) * 0.5
 
         # Weights
         w1 = 1.0
@@ -30,3 +32,4 @@ class DepthEstimationLoss():
         w3 = theta
 
         return (w1 * l_ssim) + (w2 * K.mean(l_edges)) + (w3 * K.mean(l_depth))
+        

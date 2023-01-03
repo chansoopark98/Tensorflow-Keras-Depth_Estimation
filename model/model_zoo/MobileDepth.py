@@ -4,10 +4,10 @@ class MobileDepth(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
         self.image_size = image_size
-        self.classifier_activation = 'relu'
+        self.classifier_activation = None
         self.config = None
         self.use_multi_gpu = use_multi_gpu
-        self.MOMENTUM = 0.99
+        self.MOMENTUM = 0.999
         self.EPSILON = 0.001
         self.activation = 'relu' # self.relu
         self.configuration_default()
@@ -124,11 +124,13 @@ class MobileDepth(object):
         skip8 = base.get_layer('expanded_conv_5/Add').output
         skip16 = base.get_layer('expanded_conv_11/Add').output
         x = base.get_layer('expanded_conv_14/Add').output
+        
+        x = self.ffm_module(x=x, skip=skip16, filters=160, kernel_size=3, block_id='x16')
+        x = self.ffm_module(x=x, skip=skip8, filters=112, kernel_size=3, block_id='x8')
+        x = self.ffm_module(x=x, skip=skip4, filters=80, kernel_size=3, block_id='x4')
+        x = self.ffm_module(x=x, skip=skip2, filters=40, kernel_size=3, block_id='x2')
 
-        x = self.ffm_module(x=x, skip=skip16, filters=112, kernel_size=3, block_id='x16')
-        x = self.ffm_module(x=x, skip=skip8, filters=80, kernel_size=3, block_id='x8')
-        x = self.ffm_module(x=x, skip=skip4, filters=40, kernel_size=3, block_id='x4')
-        x = self.ffm_module(x=x, skip=skip2, filters=24, kernel_size=3, block_id='x2')
+        # 160 / 112 / 80 / 40 / 24 
         # os32 expanded_conv_14/Add
         # os16 expanded_conv_11/Add
         # os8  expanded_conv_5/Add

@@ -10,7 +10,7 @@ test_data = dataset.get_trainData(dataset.train_data)
 
 tf.config.set_soft_device_placement(True)
 
-
+max_scale = 10.0
 sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
 plt.colorbar(sm)
 if __name__ == "__main__":
@@ -26,12 +26,12 @@ if __name__ == "__main__":
         fig = plt.figure()
         
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img, vmin=0.0, vmax=1.0)
+        ax0.imshow(img, vmin=0.0, vmax=max_scale)
         ax0.set_title('Image')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(depth[0], vmin=0.0, vmax=1.0)
+        ax0.imshow(depth[0], vmin=0.0, vmax=max_scale)
         ax0.set_title('Depth map')
         ax0.axis("off")
 
@@ -43,4 +43,3 @@ if __name__ == "__main__":
         
         # plt.savefig('./plt_outputs/output_{0}'.format(i), dpi=300)
         # i += 1
-        
