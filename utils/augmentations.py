@@ -10,11 +10,12 @@ class Augmentation(object):
 
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
-
         depth /= 10.
+        
+
         # depth = 10. / depth
         # depth = tf.where(tf.math.is_inf(depth), 0., depth)
-        # depth = tf.clip_by_value(depth, 0., 10)
+        # depth = tf.clip_by_value(depth, 0., 10.)
         
         
         # 테스트해볼거

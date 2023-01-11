@@ -20,14 +20,14 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0103/_Bs-32_Ep-200_Lr-0.008_ImSize-256_Opt-adam_multi-gpu_0103_TestMobileNet-bnRemove-kernel5-dw5_best_loss.h5')
+                    default='0104/_Bs-32_Ep-300_Lr-0.008_ImSize-256_Opt-adam_multi-gpu_0104_TestMobileNet-bnRemove-kernel5-dw5-data_scale_0to1-inverse_best_loss.h5')
 
 args = parser.parse_args()
 
 if __name__ == '__main__':
     data_loader = GenerateDatasets(data_dir='./datasets/', batch_size=args.batch_size, image_size=args.image_size, dataset_name='nyu_depth_v2') 
 
-    test_data = data_loader.get_testData(test_data=data_loader.train_data)
+    test_data = data_loader.get_testData(test_data=data_loader.valid_data)
 
     # Set target transforms
     model = ModelBuilder(image_size=args.image_size).build_model()
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     model.summary()
 
     # # Set colormap
-    sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=10))
+    sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
     # plt.colorbar(sm)
 
     for img, depth in test_data.take(100):

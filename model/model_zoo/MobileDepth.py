@@ -88,7 +88,7 @@ class MobileDepth(object):
 
     def classifier(self, x: tf.Tensor, upsample: bool) -> tf.Tensor:
 
-        x = tf.keras.layers.Conv2D(filters=1, kernel_size=3, strides=1, use_bias=True,
+        x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
                                     padding='same',
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)

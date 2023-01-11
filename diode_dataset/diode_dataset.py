@@ -18,6 +18,20 @@ It should also contain any processing which has been applied (if any),
 _CITATION = """
 """
 
+def depth_inpaint(depth, max_value=10, missing_value=0):
+    depth = np.where(depth > 10, 0, depth)
+
+    depth = cv2.copyMakeBorder(depth, 1, 1, 1, 1, cv2.BORDER_DEFAULT)
+    mask = (depth == missing_value).astype(np.uint8)
+
+    scale = np.abs(depth).max()
+    depth = depth.astype(np.float32) / scale
+    depth = cv2.inpaint(depth, mask, 1, cv2.INPAINT_NS)
+
+    depth = depth[1:-1, 1:-1]
+    depth = depth * scale
+
+    return depth
 
 class DiodeDataset(tfds.core.GeneratorBasedBuilder):
   """DatasetBuilder for diode_dataset dataset."""
@@ -35,8 +49,8 @@ class DiodeDataset(tfds.core.GeneratorBasedBuilder):
         description=_DESCRIPTION,
         features=tfds.features.FeaturesDict({
             # These are the features of your dataset like images, labels ...
-            'image': tfds.features.Image(shape=(None, None, 3), dtype=tf.uint8),
-            'depth': tfds.features.Tensor(shape=(None, None), dtype=tf.float16),
+            'image': tfds.features.Image(shape=(768, 1024, 3), dtype=tf.uint8),
+            'depth': tfds.features.Tensor(shape=(768, 1024), dtype=tf.float16),
         }),
         # If there's a common (input, target) tuple from the
         # features, specify them here. They'll be used if
@@ -80,10 +94,15 @@ class DiodeDataset(tfds.core.GeneratorBasedBuilder):
                     
                     # depth = '.' + data.split('.')[0] + '_depth.npy'
                     depth = data.replace('.png', '_depth.npy')
-                    depth = np.load(depth).astype(np.float16)
+                    depth = np.load(depth)
+
+                    depth = depth_inpaint(depth)
+
+                    depth = np.reshape(depth, [768, 1024]).astype(np.float16)
+
                     # depth = tf.convert_to_tensor(depth, tf.float16)
                     # depth = tf.cast(depth, tf.float16)
-                    depth = tfds.features.Encoding(depth)
+                    
                     idx += 1
                     
                     yield idx, {
