@@ -19,7 +19,7 @@ parser.add_argument("--batch_size",       type=int,    help="Batch size per each
 parser.add_argument("--epoch",            type=int,    help="Training epochs",
                     default=300)
 parser.add_argument("--lr",               type=float,  help="Initial learning rate",
-                    default=0.008)
+                    default=0.002)
 parser.add_argument("--weight_decay",     type=float,  help="Set Weight Decay",
                     default=0.00001)
 parser.add_argument("--image_size",       type=tuple,  help="Set model input size",
