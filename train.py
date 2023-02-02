@@ -13,13 +13,13 @@ parser = argparse.ArgumentParser()
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name (logging weights name and tensorboard)",
-                    default='TestMobileNet-bnRemove-kernel5-dw5-data_scale_0to1')
+                    default='EfficientDepth_scale0to10_multi')
 parser.add_argument("--batch_size",       type=int,    help="Batch size per each GPU",
                     default=32)
 parser.add_argument("--epoch",            type=int,    help="Training epochs",
-                    default=300)
+                    default=100)
 parser.add_argument("--lr",               type=float,  help="Initial learning rate",
-                    default=0.002)
+                    default=0.0002)
 parser.add_argument("--weight_decay",     type=float,  help="Set Weight Decay",
                     default=0.00001)
 parser.add_argument("--image_size",       type=tuple,  help="Set model input size",

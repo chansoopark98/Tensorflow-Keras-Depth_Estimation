@@ -23,7 +23,7 @@ class DepthEstimationLoss():
 
         # Structural similarity (SSIM) index
         # l_ssim = K.clip((1 - tf.image.ssim(y_true, y_pred, maxDepthVal)) * 0.5, 0, 1)
-        ssim = tf.image.ssim(y_true * 1000, y_pred * 1000, maxDepthVal)
+        ssim = tf.image.ssim(y_true * 100, y_pred * 100, maxDepthVal)
         l_ssim = K.clip((1. - ssim) * 0.5, 0, 1)
 
         # Weights

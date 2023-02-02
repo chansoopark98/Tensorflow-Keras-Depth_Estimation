@@ -21,7 +21,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0104/_Bs-32_Ep-200_Lr-0.008_ImSize-256_Opt-adam_multi-gpu_0104_TestMobileNet-bnRemove-kernel5-dw5-data_scale_low_best_loss.h5')
+                    default='0111/_Bs-32_Ep-300_Lr-0.002_ImSize-256_Opt-adam_multi-gpu_0111_TestMobileNet-bnRemove-kernel5-dw5-data_scale_0to1_best_loss.h5')
 
 args = parser.parse_args()
 
@@ -68,7 +68,26 @@ if __name__ == '__main__':
         img = tf.expand_dims(img, axis=0)
 
         pred = model.predict(img)
-        pred = pred[0] * 255
+        pred = pred[0]
+
+        # fig = plt.figure(figsize=(15, 10))
+        # ax = plt.axes(projection="3d")
+        # img_vis = img[0]
+        # STEP = 3
+        # for x in range(0, pred.shape[0], STEP):
+        #     for y in range(0, pred.shape[1], STEP):
+        #         ax.scatter(
+        #             [pred[x, y]] * 3,
+        #             [y] * 3,
+        #             [x] * 3,
+        #             c=tuple(img_vis[x, y, :3]),
+        #             s=3,
+        #         )
+        #     # ax.view_init(45, 135)
+
+        # plt.show()
+
+        pred = pred * 255
         pred = pred.astype(np.uint8)
         pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
 

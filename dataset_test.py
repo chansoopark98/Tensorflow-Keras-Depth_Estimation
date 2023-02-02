@@ -10,7 +10,7 @@ test_data = dataset.get_trainData(dataset.train_data)
 
 tf.config.set_soft_device_placement(True)
 
-max_scale = 1.
+max_scale = 10.
 sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
 plt.colorbar(sm)
 if __name__ == "__main__":

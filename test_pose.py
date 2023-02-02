@@ -72,6 +72,7 @@ if __name__ == "__main__":
         capture = k4a.get_capture()
 
         # mm -> cm
+        
         depth = capture.depth
         h, w = depth.shape
 
@@ -95,23 +96,6 @@ if __name__ == "__main__":
     
         choose_pc = pointCloud[np.where(pointCloud_area[:, :]==255)]
 
-        print(choose_pc.shape)
-        fig = plt.figure(figsize=(15, 10))
-        ax = plt.axes(projection="3d")
-
-        STEP = 1
-        for x in range(0, choose_pc.shape[0], STEP):
-            for y in range(0, choose_pc.shape[1], STEP):
-                ax.scatter(
-                    [choose_pc[x, y]] * 1,
-                    [y] * 1,
-                    [x] * 1,
-                    c=tuple(choose_pc[x, y, :3]),
-                    s=3,
-                )
-        ax.view_init(45, 135)
-
-
         # print('choose_pc.shape', choose_pc.shape)
         choose_pc= choose_pc.reshape(-1,3)
         choose_pc = choose_pc[~np.isnan(choose_pc[:,2])]
@@ -127,7 +111,7 @@ if __name__ == "__main__":
         v = -v
 
         if comparr[2, 2] < 0:
-            print('bigger')
+            
             comparr[2, :3] = -comparr[2, :3]
 
         # comparr[2, :3] = abs(comparr[2, :3])
@@ -142,10 +126,6 @@ if __name__ == "__main__":
         target_pose[:3,3] = meanarr # transration
 
         tf_pose = tf.transpose(v).numpy()
-        
-        # print('cv', target_pose[:3,:3])
-        # print()
-        # print('tf', tf_pose)
 
 
         camera_intrinsic = [[focal_length, 0, center_x],
@@ -157,6 +137,6 @@ if __name__ == "__main__":
 
         cv2.line(pcd, (center_x -20, center_y), (center_x + 20, center_y), (255, 255, 255), thickness=2)
         cv2.line(pcd, (center_x, center_y -20), (center_x, center_y + 20), (255, 255, 255), thickness=2)
-
+        print('target pose : ', target_pose)
         cv2.imshow('test', pcd)
         cv2.waitKey(50)
