@@ -61,6 +61,8 @@ class Augmentation(object):
 
         image = rgbd[:, :, :3]
         depth = rgbd[:, :, 3:]
+        depth = tf.image.resize(depth, size=(self.image_size[0]//2, self.image_size[1]//2),
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         return (image, depth)
     

@@ -1,4 +1,54 @@
 import tensorflow as tf
+import keras.utils.conv_utils as conv_utils
+
+def normalize_data_format(value):
+    if value is None:
+        value = tf.keras.backend.image_data_format()
+    data_format = value.lower()
+    if data_format not in {'channels_first', 'channels_last'}:
+        raise ValueError('The `data_format` argument must be one of '
+                         '"channels_first", "channels_last". Received: ' +
+                         str(value))
+    return data_format
+
+class BilinearUpSampling2D(tf.keras.layers.Layer):
+    def __init__(self, size=(2, 2), data_format=None, **kwargs):
+        super(BilinearUpSampling2D, self).__init__(**kwargs)
+        self.data_format = normalize_data_format(data_format)
+        self.size = conv_utils.normalize_tuple(size, 2, 'size')
+        self.input_spec = tf.keras.layers.InputSpec(ndim=4)
+
+    def compute_output_shape(self, input_shape):
+        if self.data_format == 'channels_first':
+            height = self.size[0] * input_shape[2] if input_shape[2] is not None else None
+            width = self.size[1] * input_shape[3] if input_shape[3] is not None else None
+            return (input_shape[0],
+                    input_shape[1],
+                    height,
+                    width)
+        elif self.data_format == 'channels_last':
+            height = self.size[0] * input_shape[1] if input_shape[1] is not None else None
+            width = self.size[1] * input_shape[2] if input_shape[2] is not None else None
+            return (input_shape[0],
+                    height,
+                    width,
+                    input_shape[3])
+
+    def call(self, inputs):
+        input_shape = tf.keras.backend.shape(inputs)
+        if self.data_format == 'channels_first':
+            height = self.size[0] * input_shape[2] if input_shape[2] is not None else None
+            width = self.size[1] * input_shape[3] if input_shape[3] is not None else None
+        elif self.data_format == 'channels_last':
+            height = self.size[0] * input_shape[1] if input_shape[1] is not None else None
+            width = self.size[1] * input_shape[2] if input_shape[2] is not None else None
+        
+        return tf.image.resize(inputs, [height, width], method=tf.image.ResizeMethod.BILINEAR)
+
+    def get_config(self):
+        config = {'size': self.size, 'data_format': self.data_format}
+        base_config = super(BilinearUpSampling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 class MobileDepth(object):
     def __init__(self, image_size: tuple,
@@ -18,95 +68,39 @@ class MobileDepth(object):
         # Set Sync batch normalization when use multi gpu
         self.batch_norm = tf.keras.layers.BatchNormalization
 
+    
+    def up_project(self, x, skip, filters, prefix):
+        "up_project function"
+        x = BilinearUpSampling2D((2, 2), name=prefix+'_upsampling2d')(x)
+        # x = tf.keras.layers.UpSampling2D(interpolation='bilinear')(x)
 
-    def ffm_module(self, x: tf.Tensor, skip: tf.Tensor, filters: int,  kernel_size: int, block_id: str):
-        # x: 1x1 conv
-        x = tf.keras.layers.Conv2D(filters=filters,
-                                   kernel_size=(1, 1),
-                                   strides=(1, 1),
-                                   kernel_initializer=self.kernel_initializer,
-                                   use_bias=False, name='ffm_x_conv1x1_{0}'.format(block_id))(x)
-        x = self.batch_norm(epsilon=self.EPSILON,
-                            momentum=self.MOMENTUM,
-                            name='ffm_x_conv1x1_bn_{0}'.format(block_id))(x)
-        x = tf.keras.layers.Activation(self.activation, name='ffm_x_activation_{0}'.format(block_id))(x)
+        # size_before = tf.keras.backend.int_shape(skip)
+        # x = tf.keras.layers.experimental.preprocessing.Resizing(
+        # *size_before[1:3], interpolation="bilinear"
+        # )(x)
 
-        # x: Resize
-        size_before = tf.keras.backend.int_shape(skip)
-        x = tf.keras.layers.experimental.preprocessing.Resizing(*size_before[1:3],
-                                                                 interpolation='nearest',
-                                                                 name='ffm_x_resize_{0}'.format(block_id))(x)
-        # x: Depth-wise conv
-        x = tf.keras.layers.DepthwiseConv2D(kernel_size=kernel_size,
-                                            strides=1, padding="same",
-                                            depthwise_initializer=self.kernel_initializer,
-                                            use_bias=False, name='ffm_x_dconv_{0}'.format(block_id))(x)
-        x = self.batch_norm(epsilon=self.EPSILON,
-                            momentum=self.MOMENTUM,
-                            name='ffm_x_dconv_bn{0}'.format(block_id))(x)
-        x = tf.keras.layers.Activation(self.activation, name='ffm_x_dconv_activation_{0}'.format(block_id))(x)
+        x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
+        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
+        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        x = tf.keras.layers.Activation('swish')(x)
 
-        # x: after 1x1 conv
-        x = tf.keras.layers.Conv2D(filters=filters,
-                                   kernel_size=(1, 1),
-                                   strides=(1, 1),
-                                   padding='same',
-                                   kernel_initializer=self.kernel_initializer,
-                                   use_bias=False, name='ffm_x_after_conv1x1_{0}'.format(block_id))(x)
-        x = self.batch_norm(epsilon=self.EPSILON,
-                            momentum=self.MOMENTUM,
-                            name='ffm_x_after_conv1x1_bn_{0}'.format(block_id))(x)
-        x = tf.keras.layers.Activation(self.activation, name='ffm_x_after_activation_{0}'.format(block_id))(x)
-
-        # concatenate skip layer
-        x = tf.keras.layers.Concatenate(axis=-1)([x, skip])
-
-        # x: Depth-wise conv
-        x = tf.keras.layers.DepthwiseConv2D(kernel_size=kernel_size,
-                                            strides=1, padding="same",
-                                            depthwise_initializer=self.kernel_initializer,
-                                            use_bias=False, name='ffm_x_after_dconv_{0}'.format(block_id))(x)
-        x = self.batch_norm(epsilon=self.EPSILON,
-                            momentum=self.MOMENTUM,
-                            name='ffm_x_after_dconv_bn_{0}'.format(block_id))(x)
-        x = tf.keras.layers.Activation(self.activation, name='ffm_x_after_dconv_activation_{0}'.format(block_id))(x)
-
-        # x: after 1x1 conv
-        x = tf.keras.layers.Conv2D(filters=filters,
-                                   kernel_size=(1, 1),
-                                   strides=(1, 1),
-                                   padding='same',
-                                   kernel_initializer=self.kernel_initializer,
-                                   use_bias=False, name='ffm_x_after_conv1x1_2_{0}'.format(block_id))(x)
-        x = self.batch_norm(epsilon=self.EPSILON,
-                            momentum=self.MOMENTUM,
-                            name='ffm_x_after_conv1x1_bn_2_{0}'.format(block_id))(x)
-        x = tf.keras.layers.Activation(self.activation, name='ffm_x_after_activation_2_{0}'.format(block_id))(x)
-
+        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
+        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        x = tf.keras.layers.Activation('swish')(x)
         return x
 
-
-    def classifier(self, x: tf.Tensor, upsample: bool) -> tf.Tensor:
-
+    def classifier(self, x: tf.Tensor) -> tf.Tensor:
         x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
                                     padding='same',
-                                   name='classifier_conv',
+                                   name='classifier_1x1_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
-
-        if upsample:
-            x = tf.keras.layers.UpSampling2D(size=(2, 2),
-                                            name='resized_model_output')(x)
-
+        x = tf.keras.layers.DepthwiseConv2D(kernel_size=3, strides=1, use_bias=True,
+                                    padding='same',
+                                   name='classifier_dw_conv',
+                                   kernel_initializer=self.kernel_initializer)(x)
         return x
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
-        # base = tf.keras.applications.MobileNetV3Large(input_shape=(*self.image_size, 3),
-        #                                        alpha=1,
-        #                                        minimalistic=False,
-        #                                        include_top=False,
-        #                                        classes=0,
-        #                                        include_preprocessing=False)
-
         input_tensor = tf.keras.Input(shape=(*self.image_size, 3))
 
 
@@ -125,20 +119,13 @@ class MobileDepth(object):
         skip16 = base.get_layer('expanded_conv_11/Add').output
         x = base.get_layer('expanded_conv_14/Add').output
         
-        x = self.ffm_module(x=x, skip=skip16, filters=112, kernel_size=5, block_id='x16')
-        x = self.ffm_module(x=x, skip=skip8, filters=80, kernel_size=5, block_id='x8')
-        x = self.ffm_module(x=x, skip=skip4, filters=40, kernel_size=5, block_id='x4')
-        x = self.ffm_module(x=x, skip=skip2, filters=24, kernel_size=5, block_id='x2')
-
-        # 160 / 112 / 80 / 40 / 24 
-        # os32 expanded_conv_14/Add
-        # os16 expanded_conv_11/Add
-        # os8  expanded_conv_5/Add
-        # os4  expanded_conv_2/Add
-        # os2  expanded_conv/Add
-       
-       # os2 classifer -> 256x256
-        output = self.classifier(x=x, upsample=True)
+        x = self.up_project(x=x, skip=skip16, filters=112, prefix='os16')
+        x = self.up_project(x=x, skip=skip8, filters=96, prefix='os8')
+        x = self.up_project(x=x, skip=skip4, filters=48, prefix='os4')
+        x = self.up_project(x=x, skip=skip2, filters=32, prefix='os2')
+        
+        # os2 classifer -> 128x64
+        output = self.classifier(x=x)
 
         model = tf.keras.models.Model(inputs=input_tensor, outputs=output)
         print('Model parameters => {0}'.format(model.count_params()))

@@ -93,12 +93,11 @@ class GenerateDatasets(DataLoadHandler):
         depth = depth[45:472, 43:608]
 
         image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        depth = tf.image.resize(depth, size=(self.image_size[0]//2, self.image_size[1]//2), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         image, depth = self.augmentations.normalize(image=image, depth=depth)
 
         return (image, depth)
-    
     
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
@@ -115,7 +114,7 @@ class GenerateDatasets(DataLoadHandler):
             image, depth = self.augmentations.random_crop(image=image, depth=depth)
         else:
             image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-            depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            depth = tf.image.resize(depth, size=(self.image_size[0]//2, self.image_size[1]//2), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         # if tf.random.uniform([]) > 0.5:
         #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)

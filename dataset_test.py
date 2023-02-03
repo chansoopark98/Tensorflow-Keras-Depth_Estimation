@@ -4,7 +4,7 @@ from utils.load_datasets import GenerateDatasets
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = GenerateDatasets(data_dir='./datasets/', image_size=(360, 480), batch_size=1, dataset_name='nyu_depth_v2')
+dataset = GenerateDatasets(data_dir='./datasets/', image_size=(640, 360), batch_size=1, dataset_name='nyu_depth_v2')
 
 test_data = dataset.get_trainData(dataset.train_data)
 

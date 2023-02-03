@@ -15,13 +15,13 @@ parser.add_argument("--image_dir",           type=str,    help="Image directory"
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(256, 256))
+                    default=(320, 180))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0111/_Bs-32_Ep-300_Lr-0.002_ImSize-256_Opt-adam_multi-gpu_0111_TestMobileNet-bnRemove-kernel5-dw5-data_scale_0to1_best_loss.h5')
+                    default='0203/_Bs-32_Ep-30_Lr-0.0002_ImSize-320_Opt-adam_multi-gpu_0203_EfficientDepth_scale0to10_multi_16:9_best_ssim.h5')
 
 args = parser.parse_args()
 
@@ -49,6 +49,7 @@ if __name__ == '__main__':
 
     frameRate = 33
 
+    
     while True:
         # 한 장의 이미지(frame)를 가져오기
         # 영상 : 이미지(프레임)의 연속
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
         # plt.show()
 
-        pred = pred * 255
+        pred = pred * 25
         pred = pred.astype(np.uint8)
         pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
 

@@ -113,6 +113,9 @@ class ModelConfiguration(GenerateDatasets):
         checkpoint_metric = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_rmse.h5',
                                               monitor='val_root_mean_squared_error', save_best_only=True, save_weights_only=True, verbose=1)
 
+        checkpoint_ssim = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_ssim.h5',
+                                              monitor='val_ssim_metric', mode='max', save_best_only=True, save_weights_only=True, verbose=1)
+
         tensorboard = tf.keras.callbacks.TensorBoard(log_dir=self.TENSORBOARD_DIR + 'train/' +
                                   self.MODEL_PREFIX, write_graph=True, write_images=True)
 
@@ -125,7 +128,7 @@ class ModelConfiguration(GenerateDatasets):
         lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
         
         # If you wanna need another callbacks, please add here.
-        self.callback = [checkpoint_val_loss, checkpoint_metric,  tensorboard, lr_scheduler]
+        self.callback = [checkpoint_val_loss, checkpoint_metric, checkpoint_ssim, tensorboard, lr_scheduler]
     
     def __set_optimizer(self):
         """
@@ -143,7 +146,7 @@ class ModelConfiguration(GenerateDatasets):
                                                           warmup_proportion=0.1,
                                                           min_lr=0.0001)
         elif self.OPTIMIZER_TYPE == 'adamW':
-            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.00001, amsgrad=True)
+            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.00001)
         if self.MIXED_PRECISION:
             tf.keras.mixed_precision.set_global_policy('mixed_float16')
             # Wrapping optimizer by mixed precision
