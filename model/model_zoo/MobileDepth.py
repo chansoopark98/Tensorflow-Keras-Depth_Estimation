@@ -61,6 +61,12 @@ class MobileDepth(object):
         self.EPSILON = 0.001
         self.activation = 'relu' # self.relu
         self.configuration_default()
+    
+    def hard_sigmoid(self, x):
+        return tf.keras.layers.ReLU(6.0)(x + 3.0) * (1.0 / 6.0)
+
+    def hard_swish(self, x):
+        return tf.keras.layers.Multiply()([x, self.hard_sigmoid(x)])
 
     def configuration_default(self):
         self.kernel_initializer = tf.keras.initializers.VarianceScaling(scale=2.0, mode="fan_out",
@@ -72,32 +78,26 @@ class MobileDepth(object):
     def up_project(self, x, skip, filters, prefix):
         "up_project function"
         x = BilinearUpSampling2D((2, 2), name=prefix+'_upsampling2d')(x)
-        # x = tf.keras.layers.UpSampling2D(interpolation='bilinear')(x)
-
-        # size_before = tf.keras.backend.int_shape(skip)
-        # x = tf.keras.layers.experimental.preprocessing.Resizing(
-        # *size_before[1:3], interpolation="bilinear"
-        # )(x)
 
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
         x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
-        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
         x = tf.keras.layers.Activation('swish')(x)
-
+        # x = self.hard_swish(x)
+        
         x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
-        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
         x = tf.keras.layers.Activation('swish')(x)
+        # x = self.hard_swish(x)
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
-        x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
+        x = tf.keras.layers.Conv2D(filters=1, kernel_size=3, strides=1, use_bias=True,
                                     padding='same',
-                                   name='classifier_1x1_conv',
+                                   name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
-        x = tf.keras.layers.DepthwiseConv2D(kernel_size=3, strides=1, use_bias=True,
-                                    padding='same',
-                                   name='classifier_dw_conv',
-                                   kernel_initializer=self.kernel_initializer)(x)
+        # x = tf.keras.layers.DepthwiseConv2D(kernel_size=3, strides=1, use_bias=True,
+        #                             padding='same',
+        #                            name='classifier_dw_conv',
+        #                            kernel_initializer=self.kernel_initializer)(x)
         return x
 
     def build_model(self, hp=None) -> tf.keras.models.Model:

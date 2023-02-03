@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--checkpoint_dir",      type=str,    help="Set the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--model_weights",       type=str,    help="Saved model weights directory",
-                    default='0203/_Bs-16_Ep-30_Lr-0.0002_ImSize-256_Opt-adamW_multi-gpu_0203_MobileDepth_scale0to10_multi_16:9_mobileVer_tfBilinear_best_ssim.h5')
+                    default='0203/_Bs-32_Ep-30_Lr-0.0002_ImSize-256_Opt-adamW_multi-gpu_0203_MobileDepth_scale0to10_multi_16:9_out128x64_best_ssim.h5')
 parser.add_argument("--image_size",          type=tuple,  help="Set image size for priors and post-processing",
                     default=(256, 128))
 parser.add_argument("--gpu_num",             type=int,    help="Set GPU number to use(When without distribute training)",
@@ -62,6 +62,13 @@ if __name__ == '__main__':
         model = model_builder.build_model()
         model.load_weights(args.checkpoint_dir + args.model_weights)
         model.summary()
+
+        model_input = model.input
+
+        model_output = tf.divide(model.output[0], 10.)
+        model_output = tf.clip_by_value(model_output, 0., 1.)
+
+        model = tf.keras.models.Model(model_input, model_output)
 
         frozen_out_path = args.frozen_dir
 
