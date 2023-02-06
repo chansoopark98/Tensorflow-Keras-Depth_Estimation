@@ -4,13 +4,13 @@ from utils.load_datasets import GenerateDatasets
 import numpy as np
 import matplotlib.pyplot as plt
 
-dataset = GenerateDatasets(data_dir='./datasets/', image_size=(640, 360), batch_size=1, dataset_name='nyu_depth_v2')
+dataset = GenerateDatasets(data_dir='./datasets/', image_size=(256, 128), batch_size=1, dataset_name='nyu_depth_v2')
 
 test_data = dataset.get_trainData(dataset.train_data)
 
 tf.config.set_soft_device_placement(True)
 
-max_scale = 10.
+max_scale = 1.
 sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
 plt.colorbar(sm)
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ class Augmentation(object):
 
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
-        # depth /= 10.
+        depth /= 10.
         
         # depth = 10. / depth
         # depth = tf.where(tf.math.is_inf(depth), 0., depth)
@@ -79,7 +79,7 @@ class Augmentation(object):
 
     
     def horizontal_flip(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        image = tf.image.random_flip_left_right(image=image)
-        depth = tf.image.random_flip_left_right(image=depth)
+        image = tf.image.flip_left_right(image=image)
+        depth = tf.image.flip_left_right(image=depth)
 
         return (image, depth)

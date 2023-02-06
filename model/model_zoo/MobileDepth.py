@@ -81,12 +81,14 @@ class MobileDepth(object):
 
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
         x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
-        x = tf.keras.layers.Activation('swish')(x)
-        # x = self.hard_swish(x)
+        # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
+        # x = tf.keras.layers.Activation('swish')(x)
+        x = self.hard_swish(x)
         
         x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
-        x = tf.keras.layers.Activation('swish')(x)
-        # x = self.hard_swish(x)
+        # x = tf.keras.layers.Activation('swish')(x)
+        # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
+        x = self.hard_swish(x)
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:

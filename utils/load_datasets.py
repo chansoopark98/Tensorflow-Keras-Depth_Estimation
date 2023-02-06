@@ -119,8 +119,8 @@ class GenerateDatasets(DataLoadHandler):
         # if tf.random.uniform([]) > 0.5:
         #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)
 
-        # if tf.random.uniform([]) > 0.5:
-        #     image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
 
         image, depth = self.augmentations.normalize(image=image, depth=depth)
         return (image, depth)

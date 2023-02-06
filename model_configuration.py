@@ -107,7 +107,10 @@ class ModelConfiguration(GenerateDatasets):
             so you must specify the name of the custom metric.
         """
         # Set training keras callbacks
-        checkpoint_val_loss = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_loss.h5',
+        checkpoint_train_loss = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_loss.h5',
+                                              monitor='loss', save_best_only=True, save_weights_only=True, verbose=1)
+
+        checkpoint_val_loss = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_val_loss.h5',
                                               monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
 
         checkpoint_metric = tf.keras.callbacks.ModelCheckpoint(self.CHECKPOINT_DIR + self.args.model_name + '/_' + self.SAVE_MODEL_NAME + '_best_rmse.h5',
@@ -146,7 +149,7 @@ class ModelConfiguration(GenerateDatasets):
                                                           warmup_proportion=0.1,
                                                           min_lr=0.0001)
         elif self.OPTIMIZER_TYPE == 'adamW':
-            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.00001)
+            self.optimizer = tf.keras.optimizers.experimental.AdamW(learning_rate=self.INIT_LR, weight_decay=0.00001, amsgrad=True)
         if self.MIXED_PRECISION:
             tf.keras.mixed_precision.set_global_policy('mixed_float16')
             # Wrapping optimizer by mixed precision

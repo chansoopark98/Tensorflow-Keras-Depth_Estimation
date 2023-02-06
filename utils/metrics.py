@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 def ssim_metric(y_true, y_pred):
-    ssim = tf.image.ssim(y_true * 100, y_pred * 100, 1000.0)
+    ssim = tf.image.ssim(y_true * 100, y_pred * 100, 100.0)
     return ssim
 
 
