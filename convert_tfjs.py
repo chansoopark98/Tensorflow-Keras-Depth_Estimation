@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--checkpoint_dir",      type=str,    help="Set the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--model_weights",       type=str,    help="Saved model weights directory",
-                    default='0203/_Bs-64_Ep-100_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_0203_MobileDepth_scale0to10_multi_16:9_out128x64_swish_classfier3x3_best_ssim.h5')
+                    default='0206/_Bs-32_Ep-100_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_0206_MobileDepth_scale0to10_multi_16:9_out128x64_swish_classfier3x3_removeBn_addFlipAug_AMSgrad_lr0.001_withoutCrop_best_loss.h5')
 parser.add_argument("--image_size",          type=tuple,  help="Set image size for priors and post-processing",
                     default=(256, 128))
 parser.add_argument("--gpu_num",             type=int,    help="Set GPU number to use(When without distribute training)",

@@ -5,6 +5,7 @@ import glob
 import os
 import cv2
 import numpy as np
+import natsort
 
 # TODO(diode_dataset): Markdown description  that will appear on the catalog page.
 _DESCRIPTION = """
@@ -13,7 +14,12 @@ Description is **formatted** as markdown.
 It should also contain any processing which has been applied (if any),
 (e.g. corrupted example skipped, images cropped,...):
 """
-
+def _load_tif(path):
+  with tf.io.gfile.GFile(path, "rb") as fp:
+    image = tfds.core.lazy_imports.PIL_Image.open(fp)
+    # rgb_img = image.convert("RGB")
+  return np.array(image).astype(np.float16)
+  
 # TODO(diode_dataset): BibTeX citation
 _CITATION = """
 """
@@ -63,7 +69,7 @@ class DiodeDataset(tfds.core.GeneratorBasedBuilder):
   def _split_generators(self, dl_manager: tfds.download.DownloadManager):
     """Returns SplitGenerators."""
     # archive_path = '../datasets/diode_raw_datasets/'
-    archive_path = dl_manager.manual_dir / 'diode_raw_datasets.zip'
+    archive_path = dl_manager.manual_dir / 'diode_indoor.zip'
     extracted_path = dl_manager.extract(archive_path)
 
     # TODO(cornell_grasp): Returns the Dict[split names, Iterator[Key, Example]]
@@ -73,39 +79,30 @@ class DiodeDataset(tfds.core.GeneratorBasedBuilder):
     }
 
   def _generate_examples(self, sample_path):
-    print('sample_path', sample_path)
-    locations = glob.glob(str(sample_path) + '/*')
-    print('locations', locations)
-    idx = 0
-    # 실내/ 실외 구분
-    for location in locations:
+    
+    img = os.path.join(sample_path, 'image', '*.jpg')
+    depth = os.path.join(sample_path, 'depth', '*.npy')
+    
+    img_files = glob.glob(img)
+    # img_files.sort()
+    img_files = natsort.natsorted(img_files,reverse=True)
+    
+    depth_files = glob.glob(depth)
+    # mask_files.sort()
+    depth_files = natsort.natsorted(depth_files,reverse=True)
+    # shuffle list same orders
 
-        print(location)
-        scenes = glob.glob(location + '/*')
-        # Scene 구분
-        for scene in scenes:
-            scans = glob.glob(scene + '/*')
-            # Scane 구분
-            for scan in scans:
-                data_list = glob.glob(scan + '/*.png')
-                # Data 구분
-                for data in data_list:
-                    image = data
-                    
-                    # depth = '.' + data.split('.')[0] + '_depth.npy'
-                    depth = data.replace('.png', '_depth.npy')
-                    depth = np.load(depth)
+    # img_files = np.array(img_files)
+    # mask_files = np.array(mask_files)
 
-                    depth = depth_inpaint(depth)
+    # indices = np.arange(img_files.shape[0])
+    # np.random.shuffle(indices)
 
-                    depth = np.reshape(depth, [768, 1024]).astype(np.float16)
-
-                    # depth = tf.convert_to_tensor(depth, tf.float16)
-                    # depth = tf.cast(depth, tf.float16)
-                    
-                    idx += 1
-                    
-                    yield idx, {
-                        'image': image,
-                        'depth' : depth,
-                    }
+    # img_files = list(img_files[indices])
+    # mask_files = list(mask_files[indices])
+    
+    for i in range(len(img_files)):
+      yield i, {
+          'image': img_files[i],
+          'depth' : np.load(depth_files[i]).astype(np.float16)
+      }

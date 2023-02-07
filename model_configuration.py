@@ -131,7 +131,7 @@ class ModelConfiguration(GenerateDatasets):
         lr_scheduler = tf.keras.callbacks.LearningRateScheduler(polyDecay, verbose=1)
         
         # If you wanna need another callbacks, please add here.
-        self.callback = [checkpoint_val_loss, checkpoint_metric, checkpoint_ssim, tensorboard, lr_scheduler]
+        self.callback = [checkpoint_train_loss, checkpoint_val_loss, checkpoint_metric, checkpoint_ssim, tensorboard, lr_scheduler]
     
     def __set_optimizer(self):
         """

@@ -121,6 +121,7 @@ class MobileDepth(object):
         skip16 = base.get_layer('expanded_conv_11/Add').output
         x = base.get_layer('expanded_conv_14/Add').output
         
+        # 160 / 112 / 80 / 40 / 24 / 16
         x = self.up_project(x=x, skip=skip16, filters=112, prefix='os16')
         x = self.up_project(x=x, skip=skip8, filters=96, prefix='os8')
         x = self.up_project(x=x, skip=skip4, filters=48, prefix='os4')

@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name (logging weights name and tensorboard)",
-                    default='MobileDepth_scale0to10_multi_16:9_out128x64_swish_classfier3x3_removeBn_addFlipAug_AMSgrad')
+                    default='MobileDepth_diode_test')
 parser.add_argument("--batch_size",       type=int,    help="Batch size per each GPU",
                     default=32)
 parser.add_argument("--epoch",            type=int,    help="Training epochs",

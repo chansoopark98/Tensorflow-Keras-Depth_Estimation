@@ -12,6 +12,10 @@ class Augmentation(object):
         image /= 255.
         depth /= 10.
         
+        depth = tf.clip_by_value(depth, 0., 1.)
+        depth = tf.where(tf.math.is_inf(depth), 0., depth)
+        depth = tf.where(tf.math.is_nan(depth), 0., depth)
+
         # depth = 10. / depth
         # depth = tf.where(tf.math.is_inf(depth), 0., depth)
         # depth = tf.clip_by_value(depth, 0., 10.)
@@ -37,7 +41,7 @@ class Augmentation(object):
 
     def random_color(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         colors = tf.random.uniform([3], 0.9, 1.1)
-        white = tf.ones([427, 565])
+        white = tf.ones([self.image_size[0], self.image_size[1]])
         color_image = tf.stack([white * colors[i] for i in range(3)], axis=2)
         image *= color_image
         image = tf.clip_by_value(image, 0, 255)
