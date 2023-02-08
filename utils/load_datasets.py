@@ -32,7 +32,7 @@ class DataLoadHandler(object):
         self.diode_valid = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='validation')
         
         self.train_data = self.train_data.concatenate(self.diode_train).concatenate(self.diode_valid)
-        
+        # self.train_data = self.diode_train.concatenate(self.diode_valid)
         
         self.number_train = 47584 + 8574 + 325
         self.number_valid = 654
@@ -61,7 +61,7 @@ class GenerateDatasets(DataLoadHandler):
         self.dataset_name = dataset_name
         self.is_tunning = is_tunning
         self.percentage = percentage
-        self.augmentations = Augmentation(image_size=self.image_size, max_crop_scale=1.3)
+        self.augmentations = Augmentation(image_size=self.image_size, max_crop_scale=1.5)
         super().__init__(data_dir=self.data_dir, dataset_name=self.dataset_name, percentage=self.percentage)
 
 
@@ -75,9 +75,6 @@ class GenerateDatasets(DataLoadHandler):
         image = tf.cast(sample['image'], tf.float32)
         depth = tf.cast(sample['depth'], tf.float32)
         depth = tf.expand_dims(depth, axis=-1)
-
-        image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, size=(self.image_size[0]//2, self.image_size[1]//2), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         return (image, depth)
 
@@ -93,7 +90,7 @@ class GenerateDatasets(DataLoadHandler):
         depth = tf.expand_dims(depth, axis=-1)
 
         image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-        depth = tf.image.resize(depth, size=(self.image_size[0]//2, self.image_size[1]//2), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         image, depth = self.augmentations.normalize(image=image, depth=depth)
 
@@ -101,6 +98,16 @@ class GenerateDatasets(DataLoadHandler):
     
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
+        # Transform augmentation
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_crop(image=image, depth=depth)
+        else:
+            image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+            depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_rotate(image=image, depth=depth)
+
         # Color augmentation
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.random_gamma(image=image, depth=depth)
@@ -108,16 +115,6 @@ class GenerateDatasets(DataLoadHandler):
             image, depth = self.augmentations.random_brightness(image=image, depth=depth)
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.random_color(image=image, depth=depth)
-
-        # Transform augmentation
-        # if tf.random.uniform([]) > 0.5:
-        #     image, depth = self.augmentations.random_crop(image=image, depth=depth)
-        # else:
-        # image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-        # depth = tf.image.resize(depth, size=(self.image_size[0]//2, self.image_size[1]//2), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-
-        # if tf.random.uniform([]) > 0.5:
-        #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)
 
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)

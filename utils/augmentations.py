@@ -7,7 +7,6 @@ class Augmentation(object):
         self.image_size = image_size
         self.max_crop_scale = max_crop_scale
 
-
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
         depth /= 10.
@@ -23,12 +22,11 @@ class Augmentation(object):
         
         # 테스트해볼거
         # depth = 1. - (depth - tf.math.reduce_min(depth)) / (tf.math.reduce_max(depth) - tf.math.reduce_min(depth))
-  
         
         return (image, depth)
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        random_gamma = tf.random.uniform([], 0.95, 1.05)
+        random_gamma = tf.random.uniform([], 0.90, 1.1)
         image = image ** random_gamma
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
@@ -40,7 +38,7 @@ class Augmentation(object):
         return (image, depth)
 
     def random_color(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        colors = tf.random.uniform([3], 0.9, 1.1)
+        colors = tf.random.uniform([3], 0.85, 1.15)
         white = tf.ones([self.image_size[0], self.image_size[1]])
         color_image = tf.stack([white * colors[i] for i in range(3)], axis=2)
         image *= color_image
@@ -65,8 +63,6 @@ class Augmentation(object):
 
         image = rgbd[:, :, :3]
         depth = rgbd[:, :, 3:]
-        depth = tf.image.resize(depth, size=(self.image_size[0]//2, self.image_size[1]//2),
-                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         return (image, depth)
     
@@ -76,7 +72,7 @@ class Augmentation(object):
 
         rand_degree = tf.random.uniform([], minval=-upper, maxval=upper)
 
-        image = tfa.image.rotate(image, rand_degree)
+        image = tfa.image.rotate(image, rand_degree, interpolation='bilinear')
         depth = tfa.image.rotate(depth, rand_degree)
 
         return (image, depth)
