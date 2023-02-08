@@ -5,6 +5,7 @@ __pycache__/
 datasets/
 tensorboard/
 checkpoints/
+image_results/
 # C extensions
 *.so
 
