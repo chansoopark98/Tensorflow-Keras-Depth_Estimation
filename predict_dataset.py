@@ -14,13 +14,13 @@ parser.add_argument("--batch_size",          type=int,    help="Evaluation batch
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(256, 128))
+                    default=(320, 160))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0207/_Bs-32_Ep-100_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_0207_MobileDepth_NewDataset_best_ssim.h5')
+                    default='0209/_Bs-64_Ep-50_Lr-0.001_ImSize-320_Opt-adamW_multi-gpu_0209_MobileDepth_NewDataset_v2_lossV2_best_rmse.h5')
 
 args = parser.parse_args()
 

@@ -10,7 +10,7 @@ class DepthEstimationLoss():
         self.l1_loss_weight = 0.1
         self.edge_loss_weight = 1.0
 
-    def depth_loss(self, y_true, y_pred, theta=0.1, maxDepthVal=100.0):
+    def depth_loss(self, y_true, y_pred, theta=0.1, maxDepthVal=1.0):
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
         # Point-wise depth
@@ -23,13 +23,14 @@ class DepthEstimationLoss():
 
         # Structural similarity (SSIM) index
         # l_ssim = K.clip((1 - tf.image.ssim(y_true, y_pred, maxDepthVal)) * 0.5, 0, 1)
-        ssim = tf.image.ssim(y_true * 100, y_pred * 100, maxDepthVal)
+        ssim = tf.image.ssim(y_true , y_pred , maxDepthVal)
         l_ssim = K.clip((1. - ssim) * 0.5, 0, 1)
 
         # Weights
         w1 = 1.0
-        w2 = 1.0
-        w3 = theta
+        w2 = 0.5
+        w3 = 0.3
 
         return (w1 * l_ssim) + (w2 * K.mean(l_edges)) + (w3 * K.mean(l_depth))
+        # return (w1 * l_ssim) + (w3 * K.mean(l_depth))
         
