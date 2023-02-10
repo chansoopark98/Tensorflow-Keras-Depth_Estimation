@@ -195,7 +195,8 @@ class ModelConfiguration(GenerateDatasets):
         # loss_obj= Total_loss(num_classes=self.num_classes)
         # self.loss = loss_obj.detection_loss
 
-        self.loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE, distribute_mode=self.DISTRIBUTION_MODE).depth_loss
+        # self.loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE, distribute_mode=self.DISTRIBUTION_MODE).depth_loss
+        self.loss = DepthEstimationLoss(global_batch_size=self.BATCH_SIZE, distribute_mode=self.DISTRIBUTION_MODE).custom_loss
 
         self.model.compile(optimizer=self.optimizer,
                            loss=self.loss,

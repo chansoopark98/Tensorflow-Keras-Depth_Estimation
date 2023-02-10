@@ -108,8 +108,9 @@ if __name__ == "__main__":
         cv2.imshow('test', rgb)
 
 
-        file_name = str(idx).zfill(2)
-        cv2.imwrite('./image_results/img' + file_name + '.jpg', rgb)
-        if cv2.waitKey(750) == ord('q'): # q를 누르면 종료
+        # file_name = str(idx).zfill(2)
+        file_name = str(idx)
+        cv2.imwrite('./image_results/' + file_name + '.jpg', rgb)
+        if cv2.waitKey(400) == ord('q'): # q를 누르면 종료
             
             break

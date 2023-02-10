@@ -95,6 +95,7 @@ class MobileDepth(object):
         x = tf.keras.layers.Conv2D(filters=1, kernel_size=3, strides=1, use_bias=True,
                                     padding='same',
                                    name='classifier_conv',
+                                #    activation='linear',
                                    kernel_initializer=self.kernel_initializer)(x)
         if upsample:
             x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
