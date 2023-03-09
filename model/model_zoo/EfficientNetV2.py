@@ -85,7 +85,7 @@ BLOCK_CONFIGS = {
         "expands": [1, 4, 4, 4, 6, 6],
         "out_channels": [24, 48, 64, 128, 160, 256],
         "depthes": [2, 4, 4, 6, 9, 15],
-        "strides": [1, 2, 2, 2, 1, 1], # original "strides": [1, 2, 2, 2, 1, 2],
+        "strides": [1, 2, 2, 2, 1, 2], # original "strides": [1, 2, 2, 2, 1, 2],
         "use_ses": [0, 0, 0, 1, 1, 1],
         "rescale_mode": "tf",
     },

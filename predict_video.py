@@ -15,13 +15,13 @@ parser.add_argument("--image_dir",           type=str,    help="Image directory"
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(320, 180))
+                    default=(320, 320))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0203/_Bs-32_Ep-30_Lr-0.0002_ImSize-320_Opt-adam_multi-gpu_0203_EfficientDepth_scale0to10_multi_16:9_best_ssim.h5')
+                    default='0210/_Bs-64_Ep-100_Lr-0.001_ImSize-320_Opt-adam_multi-gpu_0210_MobileDepth_NewDataset_v2_lossV3_test3_320x320_adam_noAMSGrad-custom_loss_best_ssim.h5')
 
 args = parser.parse_args()
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
         # plt.show()
 
-        pred = pred * 25
+        pred = pred * 100
         pred = pred.astype(np.uint8)
         pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
 

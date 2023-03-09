@@ -22,20 +22,31 @@ class DataLoadHandler(object):
     def __load_custom_dataset(self):
         """
             Loads a custom dataset specified by the user.
+            NyuConverted : 
+                    train : 47584
+                    valid : 654
+            DiodeDataset :
+                    train : 8574
+                    valid : 325
+            CustomDataset :
+                    train : 438
         """
         
-        self.train_data = tfds.load(name='NyuConverted', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
-        self.valid_data = tfds.load(name='NyuConverted', data_dir=self.data_dir, split='validation')
-        self.test_data = self.valid_data
+        self.nyu_train = tfds.load(name='NyuConverted', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
+        self.nyu_valid = tfds.load(name='NyuConverted', data_dir=self.data_dir, split='validation')
 
         self.diode_train = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
         self.diode_valid = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='validation')
+
+        self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
+        self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
         
-        self.train_data = self.train_data.concatenate(self.diode_train).concatenate(self.diode_valid)
-        # self.train_data = self.diode_train.concatenate(self.diode_valid)
+        self.train_data = self.nyu_train.concatenate(self.custom_train)
+        self.valid_data = self.nyu_valid.concatenate(self.custom_valid)
+        self.test_data = self.valid_data
         
-        self.number_train = 47584 + 8574 + 325
-        self.number_valid = 654
+        self.number_train = 47584 + 438
+        self.number_valid = 654 + 438
         self.number_test = self.number_valid
         #     self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
         #     self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()

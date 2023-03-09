@@ -50,7 +50,6 @@ class BilinearUpSampling2D(tf.keras.layers.Layer):
         base_config = super(BilinearUpSampling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-
 class EfficientDepth(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
@@ -58,7 +57,7 @@ class EfficientDepth(object):
         self.classifier_activation = 'relu'
         self.config = None
         self.use_multi_gpu = use_multi_gpu
-        self.MOMENTUM = 0.99
+        self.MOMENTUM = 0.999
         self.EPSILON = 0.001
         self.activation = 'relu' # self.relu
         self.configuration_default()
@@ -70,70 +69,59 @@ class EfficientDepth(object):
         self.batch_norm = tf.keras.layers.BatchNormalization
 
     def up_project(self, x, skip, filters, prefix):
-            "up_project function"
-            x = BilinearUpSampling2D((2, 2), name=prefix+'_upsampling2d')(x)
+        "up_project function"
+        x = BilinearUpSampling2D((2, 2), name=prefix+'_upsampling2d')(x)
 
-            # size_before = tf.keras.backend.int_shape(skip)
-            # x = tf.keras.layers.experimental.preprocessing.Resizing(
-            # *size_before[1:3], interpolation="bilinear"
-            # )(x)
-
-            x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
-            x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
-            # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
-            x = tf.keras.layers.Activation('swish')(x)
-
-            x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
-            # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
-            x = tf.keras.layers.Activation('swish')(x)
-            return x
+        x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
+        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
+        # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
+        x = tf.keras.layers.Activation('relu')(x)
+        # x = self.hard_swish(x)
+        
+        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
+        x = tf.keras.layers.Activation('relu')(x)
+        # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
+        # x = self.hard_swish(x)
+        return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
-        x = BilinearUpSampling2D((2, 2), name='final'+'_upsampling2d')(x)
-        x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
+        x = tf.keras.layers.Conv2D(filters=1, kernel_size=3, strides=1, use_bias=True,
                                     padding='same',
-                                   name='classifier_1x1_conv',
+                                   name='classifier_conv',
+                                #    activation='linear',
                                    kernel_initializer=self.kernel_initializer)(x)
-        x = tf.keras.layers.DepthwiseConv2D(kernel_size=3, strides=1, use_bias=True,
-                                    padding='same',
-                                   name='classifier_dw_conv',
-                                   kernel_initializer=self.kernel_initializer)(x)
-
+        
+        x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
+       
         return x
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
-        from .EfficientNetV2 import EfficientNetV2S, EfficientNetV2B0
         
-        base = EfficientNetV2B0(input_shape=(*self.image_size, 3), num_classes=0)
+        from EfficientNetV2 import EfficientNetV2S
+        
+        base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0, pretrained=None)
         base.summary()        
         input_tensor = base.input
         
-        os2 = base.get_layer('stack_0_block0_fu_swish').output
-        os4 = base.get_layer('add').output
-        os8 = base.get_layer('add_1').output
-        os16 = base.get_layer('add_7').output
-        x = base.get_layer('add_14').output
-        """
-            EfficientV2B0
-            [16, 32, 48, 96, 112, 192]
-            os2 -> stack_0_block0_fu_swish
-            os4 -> add
-            os8 -> add_1
-            os16 -> add_7
-            os32 -> add_14
-        """
-        x = self.up_project(x=x, skip=os16, filters=112, prefix='os16')
-        x = self.up_project(x=x, skip=os8, filters=96, prefix='os8')
-        x = self.up_project(x=x, skip=os4, filters=48, prefix='os4')
-        x = self.up_project(x=x, skip=os2, filters=32, prefix='os2')
+        # EfficientNetV2S 512 / 256 / 128 / 64 / 32 / 16
+        os2 = base.get_layer('add_1').output # @24
+        os4 = base.get_layer('add_4').output # @48
+        os8 = base.get_layer('add_7').output # @64
+        os16 = base.get_layer('add_20').output # @160
+        x = base.get_layer('add_34').output # @256
         
-
-
+        x = self.up_project(x=x, skip=os16, filters=160, prefix='os16')
+        x = self.up_project(x=x, skip=os8, filters=64, prefix='os8')
+        x = self.up_project(x=x, skip=os4, filters=48, prefix='os4')
+        x = self.up_project(x=x, skip=os2, filters=24, prefix='os2')
+        
         # os2 classifer -> 256x256
         output = self.classifier(x=x)
         
-
-
         model = tf.keras.models.Model(inputs=input_tensor, outputs=output)
         print('Model parameters => {0}'.format(model.count_params()))
         return model
+
+if __name__ == '__main__':
+    model = EfficientDepth(image_size=(512, 512), classifier_activation=None)
+    model.build_model()
