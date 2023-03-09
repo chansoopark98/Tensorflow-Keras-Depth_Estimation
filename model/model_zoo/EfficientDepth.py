@@ -97,7 +97,7 @@ class EfficientDepth(object):
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
         
-        from EfficientNetV2 import EfficientNetV2S
+        from .EfficientNetV2 import EfficientNetV2S
         
         base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0, pretrained=None)
         base.summary()        
