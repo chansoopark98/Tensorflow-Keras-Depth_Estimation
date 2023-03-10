@@ -41,13 +41,13 @@ class DataLoadHandler(object):
         self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
         self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
         
-        self.train_data = self.nyu_train.concatenate(self.custom_train)
-        self.valid_data = self.nyu_valid.concatenate(self.custom_valid)
-        self.test_data = self.custom_valid
+        self.train_data = self.nyu_train #.concatenate(self.custom_train)
+        self.valid_data = self.nyu_valid #.concatenate(self.custom_valid)
+        self.test_data = self.valid_data
         
-        self.number_train = 47584 + 438
-        self.number_valid = 654 + 438
-        self.number_test = 438
+        self.number_train = 47584
+        self.number_valid = 654
+        self.number_test = 654
         #     self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
         #     self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
 

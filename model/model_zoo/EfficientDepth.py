@@ -73,12 +73,14 @@ class EfficientDepth(object):
         x = BilinearUpSampling2D((2, 2), name=prefix+'_upsampling2d')(x)
 
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
-        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
-        # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
+        # x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
+        x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
         x = tf.keras.layers.Activation('relu')(x)
         # x = self.hard_swish(x)
         
-        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
+        # x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
         x = tf.keras.layers.Activation('relu')(x)
         # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
         # x = self.hard_swish(x)
@@ -99,7 +101,7 @@ class EfficientDepth(object):
         
         from .EfficientNetV2 import EfficientNetV2S
         
-        base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0, pretrained=None)
+        base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0)
         base.summary()        
         input_tensor = base.input
         
