@@ -12,6 +12,7 @@ image_results/
 keras_tuner/
 inputs/
 model_tune_bak/
+kinect_capture_data/*
 
 # Distribution / packaging
 .Python
