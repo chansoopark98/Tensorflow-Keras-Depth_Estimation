@@ -29,7 +29,7 @@ class DataLoadHandler(object):
                     train : 8574
                     valid : 325
             CustomDataset :
-                    train : 438
+                    train : 656
         """
         
         self.nyu_train = tfds.load(name='NyuConverted', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
@@ -38,18 +38,20 @@ class DataLoadHandler(object):
         self.diode_train = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
         self.diode_valid = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='validation')
 
-        self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
-        self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
+        self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(90))
+        self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[{0}%:]'.format(90))
         
-        self.train_data = self.nyu_train #.concatenate(self.custom_train)
-        self.valid_data = self.nyu_valid #.concatenate(self.custom_valid)
+        self.train_data = self.custom_train # self.nyu_train.concatenate(self.custom_train)
+        self.valid_data = self.custom_valid
         self.test_data = self.valid_data
+
+        self.number_custom_train = self.custom_train.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_custom_valid = self.custom_valid.reduce(0, lambda x, _: x + 1).numpy()
         
-        self.number_train = 47584
-        self.number_valid = 654
-        self.number_test = 654
-        #     self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-        #     self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_train = self.number_custom_train
+        self.number_valid = self.number_custom_valid
+        self.number_test = self.number_custom_valid
+        
 
         self.train_data.shuffle(self.number_train)
 

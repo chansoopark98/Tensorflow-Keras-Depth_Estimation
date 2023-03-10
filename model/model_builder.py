@@ -1,4 +1,5 @@
 import tensorflow as tf
+from keras.utils import data_utils
 
 class ModelBuilder(object):
     def __init__(self, image_size: tuple = (300, 300),
@@ -40,6 +41,13 @@ class ModelBuilder(object):
 
         from .model_zoo.EfficientDepth import EfficientDepth
         model = EfficientDepth(image_size=self.image_size, classifier_activation=None).build_model()
+
+        weights_path = data_utils.get_file(
+            'EfficientDepth_converted_nyu_pretrained.h5',
+            'https://github.com/chansoopark98/Tensorflow-Keras-Depth_Estimation/releases/download/v0.0.1/_Bs-32_Ep-30_Lr-0.001_ImSize-480_Opt-adam_multi-gpu_0310_230310_EfficientDepth_nyuDepth_amsgrad-True_best_loss.h5',
+            cache_subdir="models"
+        )
+        model.load_weights(weights_path, by_name=True)
         
         if self.use_weight_decay:
             for layer in model.layers:
