@@ -6,6 +6,7 @@ import tensorflow as tf
 from model.model_builder import ModelBuilder
 import matplotlib.pyplot as plt
 import numpy as np
+import open3d as o3d
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch_size",          type=int,    help="Evaluation batch size",
@@ -58,22 +59,74 @@ if __name__ == '__main__':
         retval, frame = cap.read()
         if not(retval):	# 프레임정보를 정상적으로 읽지 못하면
             break  # while문을 빠져나가기
-        img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        img = tf.image.resize(img, size=args.image_size,
+        rgb_image = tf.image.resize(rgb_image, size=args.image_size,
                 method=tf.image.ResizeMethod.BILINEAR)
 
-        img = tf.cast(img, tf.float32)
+        img = tf.cast(rgb_image, tf.float32)
         img /= 255.
         
         img = tf.expand_dims(img, axis=0)
 
         pred = model.predict(img)
-        pred = pred[0]
+
+
+        rgb_image = tf.image.resize(rgb_image, size=(720, 1280),
+                method=tf.image.ResizeMethod.BILINEAR)
+
+        pred = tf.image.resize(pred, size=(720, 1280),
+                method=tf.image.ResizeMethod.BILINEAR)
+        
+        pred = pred[0].numpy()
         
         pred = pred * 1000
-        pred = pred.astype(np.uint8)
-        # pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
 
-        cv2.imshow('test', pred)
-        cv2.waitKey(1)
+
+         # rgb image scaling 
+        rgb_image = rgb_image.numpy()
+        rgb_image = rgb_image.astype('uint8')
+
+        width = rgb_image.shape[1]
+        height = rgb_image.shape[0]
+        intrinsic_matrix = np.array([[609.98120117, 0., 637.70794678],
+                                    [0., 609.80639648, 367.38693237],
+                                    [0., 0., 1.]])
+        fx = intrinsic_matrix[0, 0]
+        fy = intrinsic_matrix[1, 1]
+        cx = intrinsic_matrix[0, 2]
+        cy = intrinsic_matrix[1, 2]
+
+        # convert rgb image to open3d depth map
+        rgb_image = o3d.geometry.Image(rgb_image)
+
+        # depth image scaling
+        depth_image = pred.astype('uint16')
+        
+        # convert depth image to open3d depth map
+        depth_image = o3d.geometry.Image(depth_image)
+        
+        # convert to rgbd image
+        rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(rgb_image,
+                                                                        depth_image,
+                                                                        convert_rgb_to_intensity=False)
+
+        test_rgbd_image = np.asarray(rgbd_image)
+
+        print('rgbd shape', test_rgbd_image.shape)
+    
+
+
+
+        # Create Open3D camera intrinsic object
+        camera_intrinsics = o3d.camera.PinholeCameraIntrinsic(width=width,
+                                                            height=height,
+                                                            fx=fx,
+                                                            fy=fy,
+                                                            cx=cx,
+                                                            cy=cy)
+        
+        # rgbd image convert to pointcloud
+        pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsics)
+
+        o3d.visualization.draw_geometries([pcd])
