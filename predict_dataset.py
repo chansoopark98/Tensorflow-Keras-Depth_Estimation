@@ -14,20 +14,20 @@ parser.add_argument("--batch_size",          type=int,    help="Evaluation batch
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(320, 320))
+                    default=(480, 640))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0210/_Bs-64_Ep-100_Lr-0.001_ImSize-320_Opt-adam_multi-gpu_0210_MobileDepth_NewDataset_v2_lossV3_test3_320x320_adam_noAMSGrad-custom_loss_best_rmse.h5')
+                    default='0310/_Bs-32_Ep-30_Lr-0.001_ImSize-512_Opt-adam_multi-gpu_0310_230309_EfficientDepth_custom_v1_withoutCrop_best_loss.h5')
 
 args = parser.parse_args()
 
 if __name__ == '__main__':
     data_loader = GenerateDatasets(data_dir='./datasets/', batch_size=args.batch_size, image_size=args.image_size, dataset_name='nyu_depth_v2') 
 
-    test_data = data_loader.get_testData(test_data=data_loader.valid_data)
+    test_data = data_loader.get_testData(test_data=data_loader.test_data)
 
     # Set target transforms
     model = ModelBuilder(image_size=args.image_size).build_model()
@@ -58,12 +58,12 @@ if __name__ == '__main__':
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(pred[0], cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(pred[0] * 10, cmap='plasma', vmin=0.0, vmax=1.0)
         ax0.set_title('pred_depth')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 3)
-        ax0.imshow(depth[0], cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(depth[0] * 10, cmap='plasma', vmin=0.0, vmax=1.0)
         ax0.set_title('gt')
         ax0.axis("off")
 

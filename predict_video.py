@@ -15,13 +15,13 @@ parser.add_argument("--image_dir",           type=str,    help="Image directory"
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
                     default='png')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(320, 320))
+                    default=(512, 512))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0210/_Bs-64_Ep-100_Lr-0.001_ImSize-320_Opt-adam_multi-gpu_0210_MobileDepth_NewDataset_v2_lossV3_test3_320x320_adam_noAMSGrad-custom_loss_best_ssim.h5')
+                    default='0310/_Bs-32_Ep-30_Lr-0.001_ImSize-512_Opt-adam_multi-gpu_0310_230309_EfficientDepth_custom_v1_withoutCrop_best_loss.h5')
 
 args = parser.parse_args()
 
@@ -70,27 +70,10 @@ if __name__ == '__main__':
 
         pred = model.predict(img)
         pred = pred[0]
-
-        # fig = plt.figure(figsize=(15, 10))
-        # ax = plt.axes(projection="3d")
-        # img_vis = img[0]
-        # STEP = 3
-        # for x in range(0, pred.shape[0], STEP):
-        #     for y in range(0, pred.shape[1], STEP):
-        #         ax.scatter(
-        #             [pred[x, y]] * 3,
-        #             [y] * 3,
-        #             [x] * 3,
-        #             c=tuple(img_vis[x, y, :3]),
-        #             s=3,
-        #         )
-        #     # ax.view_init(45, 135)
-
-        # plt.show()
-
-        pred = pred * 100
+        
+        pred = pred * 1000
         pred = pred.astype(np.uint8)
-        pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
+        # pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
 
         cv2.imshow('test', pred)
         cv2.waitKey(1)

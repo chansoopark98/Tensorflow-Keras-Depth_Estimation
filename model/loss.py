@@ -60,7 +60,7 @@ class DepthEstimationLoss():
         mae_loss = tf.reduce_mean(tf.abs(y_true - y_pred))
 
         # Structural similarity index loss
-        ssim_loss = 1 - tf.image.ssim(y_true, y_pred, max_val=1.0)
+        ssim_loss = 1 - tf.image.ssim(y_true, y_pred, max_val=10.0)
         ssim_loss = tf.reduce_mean(ssim_loss)
 
         # Log-cosh loss
@@ -72,6 +72,6 @@ class DepthEstimationLoss():
         huber_loss = tf.reduce_mean(huber_loss)
 
         # Combine the losses with weighting factors
-        total_loss = 0.4 * mae_loss + 0.3 * ssim_loss + 0.2 * logcosh_loss + 0.1 * huber_loss
+        total_loss = (0.1 * mae_loss) + (1.0 * ssim_loss) + (0.2 * logcosh_loss) + (0.2 * huber_loss)
 
         return total_loss

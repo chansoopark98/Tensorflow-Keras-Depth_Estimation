@@ -110,10 +110,10 @@ class EfficientDepth(object):
         os16 = base.get_layer('add_20').output # @160
         x = base.get_layer('add_34').output # @256
         
-        x = self.up_project(x=x, skip=os16, filters=160, prefix='os16')
-        x = self.up_project(x=x, skip=os8, filters=64, prefix='os8')
-        x = self.up_project(x=x, skip=os4, filters=48, prefix='os4')
-        x = self.up_project(x=x, skip=os2, filters=24, prefix='os2')
+        x = self.up_project(x=x, skip=os16, filters=256, prefix='os16')
+        x = self.up_project(x=x, skip=os8, filters=128, prefix='os8')
+        x = self.up_project(x=x, skip=os4, filters=64, prefix='os4')
+        x = self.up_project(x=x, skip=os2, filters=32, prefix='os2')
         
         # os2 classifer -> 256x256
         output = self.classifier(x=x)

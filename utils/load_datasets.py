@@ -43,11 +43,11 @@ class DataLoadHandler(object):
         
         self.train_data = self.nyu_train.concatenate(self.custom_train)
         self.valid_data = self.nyu_valid.concatenate(self.custom_valid)
-        self.test_data = self.valid_data
+        self.test_data = self.custom_valid
         
         self.number_train = 47584 + 438
         self.number_valid = 654 + 438
-        self.number_test = self.number_valid
+        self.number_test = 438
         #     self.number_train = self.train_data.reduce(0, lambda x, _: x + 1).numpy()
         #     self.number_valid = self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
 
@@ -110,11 +110,11 @@ class GenerateDatasets(DataLoadHandler):
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
         # Transform augmentation
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_crop(image=image, depth=depth)
-        else:
-            image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
-            depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_crop(image=image, depth=depth)
+        # else:
+        image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
+        depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.random_rotate(image=image, depth=depth)
