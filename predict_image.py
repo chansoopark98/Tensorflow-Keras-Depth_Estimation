@@ -12,15 +12,15 @@ parser.add_argument("--batch_size",          type=int,    help="Evaluation batch
 parser.add_argument("--image_dir",           type=str,    help="Image directory",
                     default='./inputs/')
 parser.add_argument("--image_format",           type=str,    help="Image data format (e.g. jpg)",
-                    default='png')
+                    default='jpg')
 parser.add_argument("--image_size",          type=tuple,  help="Model image size (input resolution)",
-                    default=(256, 256))
+                    default=(480, 640))
 parser.add_argument("--threshold",           type=float,  help="Post processing confidence threshold",
                     default=0.5)
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='1215/_Bs-16_Ep-100_Lr-0.001_ImSize-256_Opt-adamW_multi-gpu_1215_test_loss-single-adamW_best_loss.h5')
+                    default='0310/_Bs-8_Ep-30_Lr-0.001_ImSize-480_Opt-adam_multi-gpu_0310_230310_EfficientDepth_custom_best_loss.h5')
 
 args = parser.parse_args()
 
@@ -37,6 +37,8 @@ if __name__ == '__main__':
     model.load_weights(args.checkpoint_dir + args.weight_name)
     model.summary()
 
+    sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
+
     for i in range(len(image_list)):
         frame = cv2.imread(image_list[i])
 
@@ -52,18 +54,22 @@ if __name__ == '__main__':
 
         pred = model.predict(img)
 
-
         rows = 1
         cols = 3
         fig = plt.figure()
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img[0])
+        ax0.imshow(img[0], cmap='plasma', vmin=0.0, vmax=1.0)
         ax0.set_title('img')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(pred[0])
+        ax0.imshow(pred[0] * 7.5, cmap='plasma', vmin=0.0, vmax=1.0)
         ax0.set_title('pred_depth')
         ax0.axis("off")
+
+
+        fig.subplots_adjust(right=1.0)
+        cbar_ax = fig.add_axes([0.82, 0.35, 0.02, 0.3])
+        fig.colorbar(sm, cax=cbar_ax)
     
         plt.show()
