@@ -26,19 +26,19 @@ class Augmentation(object):
         return (image, depth)
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        random_gamma = tf.random.uniform([], 0.90, 1.1)
+        random_gamma = tf.random.uniform([], 0.95, 1.05)
         image = image ** random_gamma
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 
     def random_brightness(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        random_bright = tf.random.uniform([], 0.8, 1.2)
+        random_bright = tf.random.uniform([], 0.9, 1.1)
         image = image * random_bright
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 
     def random_color(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        colors = tf.random.uniform([3], 0.85, 1.15)
+        colors = tf.random.uniform([3], 0.9, 1.1)
         white = tf.ones([self.image_size[0], self.image_size[1]])
         color_image = tf.stack([white * colors[i] for i in range(3)], axis=2)
         image *= color_image

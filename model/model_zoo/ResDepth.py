@@ -90,7 +90,7 @@ class NearestSampling2D(tf.keras.layers.Layer):
         base_config = super(BilinearUpSampling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-class EfficientDepth(object):
+class ResDepth(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
         self.image_size = image_size
@@ -126,6 +126,8 @@ class EfficientDepth(object):
 
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', use_bias=True, name=prefix+'_conv_2')(x)
         x = tf.keras.layers.Activation(self.activation)(x)
+
+        x = cbam_block(x)
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
@@ -140,18 +142,19 @@ class EfficientDepth(object):
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
         
-        from .EfficientNetV2 import EfficientNetV2S
-        
-        base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0, pretrained=None)
-        base.summary()        
+        # from .EfficientNetV2 import EfficientNetV2S
+        # base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0, pretrained=None)
+
+        base = tf.keras.applications.ResNet50V2(include_top=False, input_shape=(*self.image_size, 3), classes=0, classifier_activation=None)
+        # base.summary()        
         input_tensor = base.input
         
         # EfficientNetV2S 512 / 256 / 128 / 64 / 32 / 16
-        os2 = base.get_layer('add_1').output # @24
-        os4 = base.get_layer('add_4').output # @48
-        os8 = base.get_layer('add_7').output # @64
-        os16 = base.get_layer('add_20').output # @160
-        x = base.get_layer('add_34').output # @256
+        os2 = base.get_layer('conv1_conv').output # @64
+        os4 = base.get_layer('conv2_block3_1_relu').output # @64
+        os8 = base.get_layer('conv3_block4_1_relu').output # @128
+        os16 = base.get_layer('conv4_block6_1_relu').output # @256
+        x = base.get_layer('conv5_block3_2_relu').output # @512
         
         x = self.up_project(x=x, skip=os16, filters=256, prefix='os16')
         x = self.up_project(x=x, skip=os8, filters=128, prefix='os8')
@@ -166,5 +169,5 @@ class EfficientDepth(object):
         return model
 
 if __name__ == '__main__':
-    model = EfficientDepth(image_size=(512, 512), classifier_activation=None)
+    model = ResDepth(image_size=(512, 512), classifier_activation=None)
     model.build_model()

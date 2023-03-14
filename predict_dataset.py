@@ -20,14 +20,14 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0310/_Bs-8_Ep-30_Lr-0.001_ImSize-480_Opt-adam_multi-gpu_0310_230310_EfficientDepth_custom_best_loss.h5')
+                    default='0314/_Bs-32_Ep-30_Lr-0.0002_ImSize-480_Opt-adam_multi-gpu_0314_230314_ResDepth_pretrained_nyu_MAE0.2_SSIM1.0_LOG0.2_Huber0.1_dataset10%_withCBAM_best_loss.h5')
 
 args = parser.parse_args()
 
 if __name__ == '__main__':
     data_loader = GenerateDatasets(data_dir='./datasets/', batch_size=args.batch_size, image_size=args.image_size, dataset_name='nyu_depth_v2') 
 
-    test_data = data_loader.get_testData(test_data=data_loader.train_data)
+    test_data = data_loader.get_testData(test_data=data_loader.valid_data)
 
     # Set target transforms
     model = ModelBuilder(image_size=args.image_size).build_model()
@@ -58,12 +58,12 @@ if __name__ == '__main__':
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(pred[0] * 7.5, cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(pred[0], cmap='plasma', vmin=0.0, vmax=1.0)
         ax0.set_title('pred_depth')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 3)
-        ax0.imshow(depth[0] * 7.5, cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(depth[0], cmap='plasma', vmin=0.0, vmax=1.0)
         ax0.set_title('gt')
         ax0.axis("off")
 
