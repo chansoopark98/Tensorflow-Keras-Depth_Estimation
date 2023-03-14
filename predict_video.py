@@ -6,6 +6,7 @@ import tensorflow as tf
 from model.model_builder import ModelBuilder
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import Optional, Tuple
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch_size",          type=int,    help="Evaluation batch size",
@@ -21,9 +22,20 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0310/_Bs-8_Ep-30_Lr-0.001_ImSize-480_Opt-adam_multi-gpu_0310_230310_EfficientDepth_custom_best_ssim.h5')
+                    default='_Bs-32_Ep-30_Lr-0.002_ImSize-480_Opt-adam_multi-gpu_0314_230314_EfficientDepth_nyu+diode_best_ssim.h5')
 
 args = parser.parse_args()
+
+
+def colorize(image: np.ndarray, clipping_range: Tuple[Optional[int], Optional[int]] = (None, None),
+    colormap: int = cv2.COLORMAP_HSV,) -> np.ndarray:
+    if clipping_range[0] or clipping_range[1]:
+        img = image.clip(clipping_range[0], clipping_range[1])
+    else:
+        img = image.copy()
+    img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    img = cv2.applyColorMap(img, colormap)
+    return img
 
 
 if __name__ == '__main__':
@@ -38,7 +50,7 @@ if __name__ == '__main__':
     model.load_weights(args.checkpoint_dir + args.weight_name)
     model.summary()
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     # 프레임을 정수형으로 형 변환
     frameWidth = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))	# 영상의 넓이(가로) 프레임
@@ -70,10 +82,11 @@ if __name__ == '__main__':
 
         pred = model.predict(img)
         pred = pred[0]
-        
-        pred = pred * 1000
+
+        pred = pred * 255
         pred = pred.astype(np.uint8)
         # pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
+        pred = colorize(pred, (None, 5000), colormap=cv2.COLORMAP_JET)
 
         cv2.imshow('test', pred)
         cv2.waitKey(1)
