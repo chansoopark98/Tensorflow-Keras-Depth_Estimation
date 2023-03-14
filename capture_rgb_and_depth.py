@@ -14,7 +14,7 @@ def depth_inpaint(depth, max_value=10, missing_value=0) -> np.ndarray:
 
     scale = np.abs(depth).max()
     depth = depth.astype(np.float32) / scale
-    depth = cv2.inpaint(depth, mask, 3, cv2.INPAINT_NS)
+    depth = cv2.inpaint(depth, mask, 5, cv2.INPAINT_NS)
 
     depth = depth[1:-1, 1:-1]
     depth = depth * scale
@@ -33,7 +33,7 @@ depth_path = dir_path + 'depth/'
 os.makedirs(rgb_path, exist_ok=True)
 os.makedirs(depth_path, exist_ok=True)
 
-rgb_resolution = '720'
+rgb_resolution = '1536'
 rgb_resolution
 camera = PyAzureKinectCamera(resolution=rgb_resolution)
 camera.capture()
@@ -50,8 +50,11 @@ if __name__ == "__main__":
         camera.capture()
         rgb = camera.get_color()
         rgb = rgb[:, :, :3].astype(np.uint8)
-
         depth = camera.get_transformed_depth()
+
+        rgb = cv2.resize(rgb, (640, 480), interpolation=cv2.INTER_LINEAR)
+        depth = cv2.resize(depth, (640, 480), interpolation=cv2.INTER_NEAREST)
+
         depth = depth / 1000.
         depth = depth_inpaint(depth=depth)
         

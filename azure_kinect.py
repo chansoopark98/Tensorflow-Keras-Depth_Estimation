@@ -11,6 +11,7 @@ class PyAzureKinectCamera(object):
         self.capture_buffer = None
     
     def __get_camera_config(self, resolution: str = '720'):
+        depth_mode = pyk4a.DepthMode.NFOV_UNBINNED
         if resolution == '720':
             color_resolution = pyk4a.ColorResolution.RES_720P
         elif resolution == '1080':
@@ -19,13 +20,16 @@ class PyAzureKinectCamera(object):
             color_resolution = pyk4a.ColorResolution.RES_1440P
         elif resolution == '2160':
             color_resolution = pyk4a.ColorResolution.RES_2160P
+        elif resolution == '1536':
+            color_resolution = pyk4a.ColorResolution.RES_1536P
+            depth_mode = pyk4a.DepthMode.WFOV_2X2BINNED
         else:
             raise ValueError('설정한 카메라 해상도를 찾을 수 없습니다.\
                  현재 입력한 해상도 {0}'.format(resolution))
 
         config = Config(
             color_resolution=color_resolution,
-            depth_mode=pyk4a.DepthMode.NFOV_UNBINNED,
+            depth_mode=depth_mode,
             synchronized_images_only=True
         )
         return config
