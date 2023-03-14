@@ -30,7 +30,7 @@ class DepthEstimationLoss():
         # Return negative SSIM as the loss
         return -tf.reduce_mean(ssim)
 
-    def depth_loss(self, y_true, y_pred, theta=0.1, maxDepthVal=1.0):
+    def depth_loss(self, y_true, y_pred, theta=0.1, maxDepthVal=10.0):
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
         # Point-wise depth
@@ -49,8 +49,8 @@ class DepthEstimationLoss():
 
         # Weights
         w1 = 1.0
-        w2 = 0.5 # 0.5
-        w3 = 0.3 # 0.3
+        w2 = 0.4 # 0.5
+        w3 = 0.2 # 0.3
 
         return (w1 * l_ssim) + (w2 * K.mean(l_edges)) + (w3 * K.mean(l_depth))
         # return (w1 * l_ssim) + (w3 * K.mean(l_depth))
@@ -63,8 +63,14 @@ class DepthEstimationLoss():
         ssim_loss = 1 - tf.image.ssim(y_true, y_pred, max_val=10.0)
         ssim_loss = tf.reduce_mean(ssim_loss)
 
+        # Edges
+        dy_true, dx_true = tf.image.image_gradients(y_true)
+        dy_pred, dx_pred = tf.image.image_gradients(y_pred)
+        l_edges = K.mean(K.abs(dy_pred - dy_true) + K.abs(dx_pred - dx_true), axis=-1)
+
         # Log-cosh loss
-        logcosh_loss = tf.reduce_mean(tf.math.log(tf.cosh(y_pred - y_true)))
+        # logcosh_loss = tf.reduce_mean(tf.math.log(tf.cosh(y_pred - y_true)))
+        logcosh_loss = tf.keras.losses.log_cosh(y_true=y_true, y_pred=y_pred)
 
         # BerHu loss
         huber_delta = 0.5
@@ -72,6 +78,6 @@ class DepthEstimationLoss():
         huber_loss = tf.reduce_mean(huber_loss)
 
         # Combine the losses with weighting factors
-        total_loss = (0.1 * mae_loss) + (1.0 * ssim_loss) + (0.2 * logcosh_loss) + (0.2 * huber_loss)
+        total_loss = (0.1 * mae_loss) + (1.0 * ssim_loss) + (0.5 *l_edges) + (0.2 * logcosh_loss) + (0.2 * huber_loss)
 
         return total_loss
