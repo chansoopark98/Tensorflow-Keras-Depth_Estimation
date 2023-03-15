@@ -114,7 +114,8 @@ class ResDepth(object):
     def up_project(self, x, skip, filters, prefix):
         "up_project function"
         # x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
-        x = NearestSampling2D((2, 2), name=prefix+'_nearest_upsampling2d')(x)
+        # x = NearestSampling2D((2, 2), name=prefix+'_nearest_upsampling2d')(x)
+        x = tf.keras.layers.Conv2DTranspose(filters=filters, kernel_size=3, strides=2, padding='same', use_bias=True, name=prefix+'_transpose_1')(x)
 
         skip = cbam_block(skip)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])

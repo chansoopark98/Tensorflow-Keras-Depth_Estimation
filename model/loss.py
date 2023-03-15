@@ -102,6 +102,8 @@ class DepthEstimationLoss():
         huber_loss = tf.reduce_mean(huber_loss)
 
         # Combine the losses with weighting factors
-        total_loss = ssim_loss + (0.2 * edge_loss) + logcosh_loss + huber_loss
+        # total_loss = ssim_loss + (0.2 * edge_loss) + logcosh_loss + huber_loss
+        total_loss = ssim_loss + (0.2 * edge_loss) + (0.1 * logcosh_loss) + (0.1 * huber_loss)
+
 
         return total_loss
