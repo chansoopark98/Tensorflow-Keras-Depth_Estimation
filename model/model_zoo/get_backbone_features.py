@@ -1,5 +1,5 @@
 import tensorflow as tf
-from EfficientNetV2 import *
+from .EfficientNetV2 import *
 
 def get_resnet_features(model: str = 'resnet50',
                         image_size: tuple = (512, 512),
@@ -38,15 +38,23 @@ def get_efficientnetv2_features(model: str = 'b0',
                         pretrained: bool = True) -> list:
     
     if model =='b0':
-        base = EfficientNetV2B0(input_shape=(*image_size, 3), num_classes=0, pretrained=None)
+        # base = EfficientNetV2B0(input_shape=(*image_size, 3), num_classes=0, pretrained=None)
+        base = tf.keras.applications.EfficientNetV2B0(include_top=False, include_preprocessing=False, input_shape=(*image_size, 3), classes=0, classifier_activation=None)
         base.summary()
 
-        # EfficientNetV2S 512 / 256 / 128 / 64 / 32 / 16
-        os2 = base.get_layer('stem_swish').output # @32
-        os4 = base.get_layer('add').output # @32
-        os8 = base.get_layer('add_1').output # @48
-        os16 = base.get_layer('add_7').output # @112
-        os32 = base.get_layer('add_14').output # @192
+        # os2 = base.get_layer('stem_swish').output # @32
+        # os4 = base.get_layer('add').output # @32
+        # os8 = base.get_layer('add_1').output # @48
+        # os16 = base.get_layer('add_7').output # @112
+        # os32 = base.get_layer('add_14').output # @192
+
+        os2 = base.get_layer('stem_activation').output # @32
+        os4 = base.get_layer('block2b_add').output # @32
+        os8 = base.get_layer('block3b_add').output # @48
+        os16 = base.get_layer('block5e_add').output # @112
+        os32 = base.get_layer('block6h_add').output # @192
+
+
 
     elif model == 's':
         base = EfficientNetV2S(input_shape=(*image_size, 3), num_classes=0, pretrained=None)

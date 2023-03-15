@@ -30,9 +30,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--checkpoint_dir",      type=str,    help="Set the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--model_weights",       type=str,    help="Saved model weights directory",
-                    default='0210/_Bs-64_Ep-100_Lr-0.001_ImSize-320_Opt-adam_multi-gpu_0210_MobileDepth_NewDataset_v2_lossV3_test3_320x320_adam_noAMSGrad-custom_loss_best_rmse.h5')
+                    default='0315/_Bs-32_Ep-50_Lr-0.0002_ImSize-480_Opt-adam_multi-gpu_0315_230314_EfficientV2B0_customLoss_480x640_adam_lossFactor_best_rmse.h5')
 parser.add_argument("--image_size",          type=tuple,  help="Set image size for priors and post-processing",
-                    default=(256, 256))
+                    default=(224, 224))
 parser.add_argument("--gpu_num",             type=int,    help="Set GPU number to use(When without distribute training)",
                     default=0)
 parser.add_argument("--frozen_dir",          type=str,    help="Path to save frozen graph transformation result",
@@ -51,8 +51,6 @@ if __name__ == '__main__':
     # disable_eager_execution()
     gpu_number = '/device:GPU:' + str(args.gpu_num)
     with tf.device(gpu_number):
-
-    
         model_builder = ModelBuilder(image_size=args.image_size,
                                   use_weight_decay=False,
                                   weight_decay=0,
@@ -68,7 +66,6 @@ if __name__ == '__main__':
         model_output = tf.multiply(model.output[0], 255.)
         model_output = tf.clip_by_value(model_output, 0., 255.)
         
-
         model = tf.keras.models.Model(model_input, model_output)
 
         frozen_out_path = args.frozen_dir

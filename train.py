@@ -13,11 +13,11 @@ parser = argparse.ArgumentParser()
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name (logging weights name and tensorboard)",
-                    default='230314_EfficientV2B0_customLoss_480x640_adam_lossFactor')
+                    default='230315_EfficientV2B0_customLoss_480x640_adam_lossFactor_test2')
 parser.add_argument("--batch_size",       type=int,    help="Batch size per each GPU",
                     default=32)
 parser.add_argument("--epoch",            type=int,    help="Training epochs",
-                    default=50)
+                    default=100)
 parser.add_argument("--lr",               type=float,  help="Initial learning rate",
                     default=0.0004)
 parser.add_argument("--weight_decay",     type=float,  help="Set Weight Decay",

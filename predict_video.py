@@ -22,7 +22,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='_Bs-32_Ep-30_Lr-0.002_ImSize-480_Opt-adam_multi-gpu_0314_230314_EfficientDepth_nyu+diode_best_ssim.h5')
+                    default='0315/_Bs-32_Ep-50_Lr-0.0002_ImSize-480_Opt-adam_multi-gpu_0315_230314_EfficientV2B0_customLoss_480x640_adam_lossFactor_best_rmse.h5')
 
 args = parser.parse_args()
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     model.load_weights(args.checkpoint_dir + args.weight_name)
     model.summary()
 
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     # 프레임을 정수형으로 형 변환
     frameWidth = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))	# 영상의 넓이(가로) 프레임
@@ -83,10 +83,10 @@ if __name__ == '__main__':
         pred = model.predict(img)
         pred = pred[0]
 
-        pred = pred * 255
+        pred = pred * 1000
         pred = pred.astype(np.uint8)
         # pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
-        pred = colorize(pred, (None, 5000), colormap=cv2.COLORMAP_JET)
+        pred = colorize(pred, (0, 1000), colormap=cv2.COLORMAP_JET)
 
         cv2.imshow('test', pred)
         cv2.waitKey(1)

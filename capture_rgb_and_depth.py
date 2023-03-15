@@ -38,6 +38,7 @@ rgb_resolution
 camera = PyAzureKinectCamera(resolution=rgb_resolution)
 camera.capture()
 camera_intrinsic = list(camera.get_color_intrinsic_matrix())
+print(camera_intrinsic)
 
 with open(os.path.join(dir_path, 'camera_information.csv'),'w',newline='') as f:
     writer = csv.writer(f)
