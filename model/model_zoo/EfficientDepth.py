@@ -94,7 +94,7 @@ class EfficientDepth(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
         self.image_size = image_size
-        self.classifier_activation = 'relu'
+        self.classifier_activation = 'swish'
         self.config = None
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
@@ -113,8 +113,7 @@ class EfficientDepth(object):
 
     def up_project(self, x, skip, filters, prefix):
         "up_project function"
-        # x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
-        x = NearestSampling2D((2, 2), name=prefix+'_nearest_upsampling2d')(x)
+        x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
 
         skip = cbam_block(skip)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
@@ -126,6 +125,7 @@ class EfficientDepth(object):
 
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', use_bias=True, name=prefix+'_conv_2')(x)
         x = tf.keras.layers.Activation(self.activation)(x)
+        x = cbam_block(x)
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
@@ -134,25 +134,22 @@ class EfficientDepth(object):
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
         
-        x = NearestSampling2D((2, 2), name='final_upsampling2d')(x)
+        x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
        
         return x
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
-        
-        from .EfficientNetV2 import EfficientNetV2S
-        
-        base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0, pretrained=None)
-        base.summary()        
-        input_tensor = base.input
-        
-        # EfficientNetV2S 512 / 256 / 128 / 64 / 32 / 16
-        os2 = base.get_layer('add_1').output # @24
-        os4 = base.get_layer('add_4').output # @48
-        os8 = base.get_layer('add_7').output # @64
-        os16 = base.get_layer('add_20').output # @160
-        x = base.get_layer('add_34').output # @256
-        
+        from .get_backbone_features import get_efficientnetv2_features
+
+        features = get_efficientnetv2_features(model='b0', image_size=self.image_size, pretrained=True)
+        input_tensor = features[0]
+
+        os2 = features[1]
+        os4 = features[2]
+        os8 = features[3]
+        os16 = features[4]
+        x = features[5]
+
         x = self.up_project(x=x, skip=os16, filters=256, prefix='os16')
         x = self.up_project(x=x, skip=os8, filters=128, prefix='os8')
         x = self.up_project(x=x, skip=os4, filters=64, prefix='os4')
