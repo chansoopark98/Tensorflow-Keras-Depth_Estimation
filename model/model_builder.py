@@ -39,11 +39,11 @@ class ModelBuilder(object):
         # from .model_zoo.MobileDepth import MobileDepth
         # model = MobileDepth(image_size=self.image_size, classifier_activation=None).build_model()
 
-        # from .model_zoo.EfficientDepth import EfficientDepth
-        # model = EfficientDepth(image_size=self.image_size, classifier_activation=None).build_model()
+        from .model_zoo.EfficientDepth import EfficientDepth
+        model = EfficientDepth(image_size=self.image_size, classifier_activation=None).build_model()
 
-        from .model_zoo.DDRNetDepth import DDRNetDepth
-        model = DDRNetDepth(image_size=self.image_size, classifier_activation=None).build_model()
+        # from .model_zoo.DDRNetDepth import DDRNetDepth
+        # model = DDRNetDepth(image_size=self.image_size, classifier_activation=None).build_model()
 
 
         # from .model_zoo.ResDepth import ResDepth

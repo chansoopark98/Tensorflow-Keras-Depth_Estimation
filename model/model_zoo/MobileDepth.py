@@ -49,6 +49,45 @@ class BilinearUpSampling2D(tf.keras.layers.Layer):
         config = {'size': self.size, 'data_format': self.data_format}
         base_config = super(BilinearUpSampling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+    
+class NearestSampling2D(tf.keras.layers.Layer):
+    def __init__(self, size=(2, 2), data_format=None, **kwargs):
+        super(NearestSampling2D, self).__init__(**kwargs)
+        self.data_format = normalize_data_format(data_format)
+        self.size = conv_utils.normalize_tuple(size, 2, 'size')
+        self.input_spec = tf.keras.layers.InputSpec(ndim=4)
+
+    def compute_output_shape(self, input_shape):
+        if self.data_format == 'channels_first':
+            height = self.size[0] * input_shape[2] if input_shape[2] is not None else None
+            width = self.size[1] * input_shape[3] if input_shape[3] is not None else None
+            return (input_shape[0],
+                    input_shape[1],
+                    height,
+                    width)
+        elif self.data_format == 'channels_last':
+            height = self.size[0] * input_shape[1] if input_shape[1] is not None else None
+            width = self.size[1] * input_shape[2] if input_shape[2] is not None else None
+            return (input_shape[0],
+                    height,
+                    width,
+                    input_shape[3])
+
+    def call(self, inputs):
+        input_shape = tf.keras.backend.shape(inputs)
+        if self.data_format == 'channels_first':
+            height = self.size[0] * input_shape[2] if input_shape[2] is not None else None
+            width = self.size[1] * input_shape[3] if input_shape[3] is not None else None
+        elif self.data_format == 'channels_last':
+            height = self.size[0] * input_shape[1] if input_shape[1] is not None else None
+            width = self.size[1] * input_shape[2] if input_shape[2] is not None else None
+        
+        return tf.image.resize(inputs, [height, width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+    def get_config(self):
+        config = {'size': self.size, 'data_format': self.data_format}
+        base_config = super(NearestSampling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 class MobileDepth(object):
     def __init__(self, image_size: tuple,
@@ -77,18 +116,18 @@ class MobileDepth(object):
     
     def up_project(self, x, skip, filters, prefix):
         "up_project function"
-        x = BilinearUpSampling2D((2, 2), name=prefix+'_upsampling2d')(x)
+        x = NearestSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
 
+        # skip = cbam_block(skip)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
-        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convA')(x)
-        # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
-        x = tf.keras.layers.Activation('relu')(x)
-        # x = self.hard_swish(x)
-        
-        x = tf.keras.layers.SeparableConv2D(filters=filters, kernel_size=3, strides=1, padding='same', name=prefix+'_convB')(x)
-        x = tf.keras.layers.Activation('relu')(x)
-        # x = tf.keras.layers.BatchNormalization(momentum=0.999)(x)
-        # x = self.hard_swish(x)
+
+        # Final std conv
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', use_bias=True, name=prefix+'_conv_1')(x)
+        x = tf.keras.layers.Activation(self.activation)(x)
+
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=1, strides=1, padding='same', use_bias=True, name=prefix+'_conv_2')(x)
+        x = tf.keras.layers.Activation(self.activation)(x)
+
         return x
 
     def classifier(self, x: tf.Tensor, upsample: bool = True) -> tf.Tensor:
@@ -98,7 +137,7 @@ class MobileDepth(object):
                                 #    activation='linear',
                                    kernel_initializer=self.kernel_initializer)(x)
         if upsample:
-            x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
+            x = NearestSampling2D((2, 2), name='final_upsampling2d')(x)
         # x = tf.keras.layers.DepthwiseConv2D(kernel_size=3, strides=1, use_bias=True,
         #                             padding='same',
         #                            name='classifier_dw_conv',
@@ -129,9 +168,9 @@ class MobileDepth(object):
         x = self.up_project(x=x, skip=skip8, filters=96, prefix='os8')
         x = self.up_project(x=x, skip=skip4, filters=48, prefix='os4')
         x = self.up_project(x=x, skip=skip2, filters=32, prefix='os2')
-        
+    
         # os2 classifer -> 128x64
-        output = self.classifier(x=x)
+        output = self.classifier(x=x, upsample=True)
 
         model = tf.keras.models.Model(inputs=input_tensor, outputs=output)
         print('Model parameters => {0}'.format(model.count_params()))

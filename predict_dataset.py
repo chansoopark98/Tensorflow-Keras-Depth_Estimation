@@ -20,7 +20,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0316/_Bs-32_Ep-30_Lr-0.0002_ImSize-480_Opt-adamW_multi-gpu_0316_230315_EfficientV2B0_CustomDataset_full_best_ssim.h5')
+                    default='0316/_Bs-32_Ep-50_Lr-0.0004_ImSize-480_Opt-adam_multi-gpu_0316_230316_EfficientDepth_new_loss_best_ssim.h5')
 
 args = parser.parse_args()
 
@@ -53,17 +53,17 @@ if __name__ == '__main__':
         cols = 4
         fig = plt.figure()
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img[0], cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(img[0], cmap='plasma', vmin=0.0, vmax=10.0)
         ax0.set_title('img')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(pred[0] * 10, cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(pred[0], cmap='plasma', vmin=0.0, vmax=10.0)
         ax0.set_title('pred_depth')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 3)
-        ax0.imshow(depth[0] * 10, cmap='plasma', vmin=0.0, vmax=1.0)
+        ax0.imshow(depth[0], cmap='plasma', vmin=0.0, vmax=10.0)
         ax0.set_title('gt')
         ax0.axis("off")
 

@@ -9,11 +9,15 @@ class Augmentation(object):
 
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
-        depth /= 10.
-        
-        depth = tf.clip_by_value(depth, 0., 1.)
+
+        # Depth convert -> m to mm
+        depth *= 100.
+        depth = 1000. / depth
+
+        depth = tf.clip_by_value(depth, 0., 100.)
         depth = tf.where(tf.math.is_inf(depth), 0., depth)
         depth = tf.where(tf.math.is_nan(depth), 0., depth)
+        depth = tf.where(depth == 100., 0., depth)
 
         # depth = 10. / depth
         # depth = tf.where(tf.math.is_inf(depth), 0., depth)
@@ -32,7 +36,7 @@ class Augmentation(object):
         return (image, depth)
 
     def random_brightness(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
-        random_bright = tf.random.uniform([], 0.5, 2.0)
+        random_bright = tf.random.uniform([], 0.7, 1.3)
         image = image * random_bright
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
