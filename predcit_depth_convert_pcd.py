@@ -23,7 +23,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0315/_Bs-32_Ep-50_Lr-0.0002_ImSize-480_Opt-adam_multi-gpu_0315_230314_EfficientV2B0_customLoss_480x640_adam_lossFactor_best_rmse.h5')
+                    default='0316/_Bs-32_Ep-30_Lr-0.0002_ImSize-480_Opt-adamW_multi-gpu_0316_230315_EfficientV2B0_CustomDataset_full_best_ssim.h5')
 
 args = parser.parse_args()
 
@@ -45,6 +45,7 @@ if __name__ == '__main__':
     model.summary()
 
     while True:
+        camera.capture()
         frame = camera.get_color()
         
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -84,9 +85,7 @@ if __name__ == '__main__':
         intrinsic_matrix = np.array([[970.65313721, 0.,1026.76464844],
                                      [0., 970.93304443, 775.31921387],
                                      [0., 0., 1.]])
-        
-        
-                                                                                                                 
+                                                             
         fx = intrinsic_matrix[0, 0]
         fy = intrinsic_matrix[1, 1]
         cx = intrinsic_matrix[0, 2]

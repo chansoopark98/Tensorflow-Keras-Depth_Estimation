@@ -38,8 +38,8 @@ class DataLoadHandler(object):
         # self.diode_train = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
         # self.diode_valid = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='validation')
 
-        # self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(90))
-        # self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[{0}%:]'.format(90))
+        self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(90))
+        self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[{0}%:]'.format(90))
         
         self.train_data = self.nyu_train #.concatenate(self.diode_train) # self.nyu_train.concatenate(self.custom_train)
         self.valid_data = self.nyu_valid #.concatenate(self.diode_valid)

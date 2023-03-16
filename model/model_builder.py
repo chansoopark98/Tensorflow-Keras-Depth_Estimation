@@ -39,17 +39,23 @@ class ModelBuilder(object):
         # from .model_zoo.MobileDepth import MobileDepth
         # model = MobileDepth(image_size=self.image_size, classifier_activation=None).build_model()
 
-        from .model_zoo.EfficientDepth import EfficientDepth
-        model = EfficientDepth(image_size=self.image_size, classifier_activation=None).build_model()
+        # from .model_zoo.EfficientDepth import EfficientDepth
+        # model = EfficientDepth(image_size=self.image_size, classifier_activation=None).build_model()
+
+        from .model_zoo.DDRNetDepth import DDRNetDepth
+        model = DDRNetDepth(image_size=self.image_size, classifier_activation=None).build_model()
+
 
         # from .model_zoo.ResDepth import ResDepth
         # model = ResDepth(image_size=self.image_size, classifier_activation=None).build_model()
 
         # weights_path = data_utils.get_file(
         #     'EfficientDepth_converted_nyu_pretrained.h5',
-        #     'https://github.com/chansoopark98/Tensorflow-Keras-Depth_Estimation/releases/download/v0.0.1/_Bs-32_Ep-30_Lr-0.001_ImSize-480_Opt-adam_multi-gpu_0310_230310_EfficientDepth_nyuDepth_amsgrad-True_best_loss.h5',
+        #     'https://github.com/chansoopark98/Tensorflow-Keras-Depth_Estimation/releases/download/v0.0.2/_Bs-32_Ep-100_Lr-0.0002_ImSize-480_Opt-adamW_multi-gpu_0315_230315_EfficientV2B0_customLoss_480x640_adam_lossFactor_test2_best_loss.h5',
         #     cache_subdir="models"
         # )
+
+        # weights_path = './checkpoints/0315/_Bs-32_Ep-100_Lr-0.0002_ImSize-480_Opt-adamW_multi-gpu_0315_230315_EfficientV2B0_customLoss_480x640_adam_lossFactor_test2_best_loss.h5'
         # model.load_weights(weights_path, by_name=True)
         
         if self.use_weight_decay:

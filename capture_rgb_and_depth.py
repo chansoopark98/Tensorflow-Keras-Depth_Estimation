@@ -27,7 +27,7 @@ current_time = now.strftime('%Y_%m_%d_%H_%M_%S')
 dir_name = 'kinect_capture_data'
 dir_path = './{0}/{1}/'.format(dir_name, current_time)
 
-rgb_path = dir_path + 'rgb/'
+rgb_path = dir_path + 'image/'
 depth_path = dir_path + 'depth/'
 
 os.makedirs(rgb_path, exist_ok=True)

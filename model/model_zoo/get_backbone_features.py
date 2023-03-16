@@ -54,8 +54,6 @@ def get_efficientnetv2_features(model: str = 'b0',
         os16 = base.get_layer('block5e_add').output # @112
         os32 = base.get_layer('block6h_add').output # @192
 
-
-
     elif model == 's':
         base = EfficientNetV2S(input_shape=(*image_size, 3), num_classes=0, pretrained=None)
         base.summary()        

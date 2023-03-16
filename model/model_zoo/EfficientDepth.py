@@ -112,6 +112,7 @@ class EfficientDepth(object):
         # x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
 
     def up_project(self, x, skip, filters, prefix):
+        
         "up_project function"
         x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
 
@@ -123,9 +124,11 @@ class EfficientDepth(object):
         x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
         x = tf.keras.layers.Activation(self.activation)(x)
 
+        x = cbam_block(x)
+
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', use_bias=True, name=prefix+'_conv_2')(x)
         x = tf.keras.layers.Activation(self.activation)(x)
-        x = cbam_block(x)
+
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
@@ -133,7 +136,7 @@ class EfficientDepth(object):
                                     padding='same',
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
-        
+        x = tf.keras.layers.Activation('relu')(x)
         x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
        
         return x

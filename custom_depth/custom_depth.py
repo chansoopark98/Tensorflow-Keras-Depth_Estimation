@@ -35,8 +35,8 @@ class CustomDepth(tfds.core.GeneratorBasedBuilder):
         description=_DESCRIPTION,
         features=tfds.features.FeaturesDict({
             # These are the features of your dataset like images, labels ...
-            'image': tfds.features.Image(shape=(720, 1280, 3), dtype=tf.uint8),
-            'depth': tfds.features.Tensor(shape=(720, 1280), dtype=tf.float16),
+            'image': tfds.features.Image(shape=(480, 640, 3), dtype=tf.uint8),
+            'depth': tfds.features.Tensor(shape=(480, 640), dtype=tf.float16),
         }),
         # If there's a common (input, target) tuple from the
         # features, specify them here. They'll be used if
