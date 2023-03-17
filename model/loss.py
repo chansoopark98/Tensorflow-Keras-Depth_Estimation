@@ -78,6 +78,31 @@ class DepthEstimationLoss():
     #     total_loss = (0.1 * mae_loss) + (1.0 * ssim_loss) + (0.2 * logcosh_loss) + (0.1 * huber_loss)
 
     #     return total_loss
+
+    def depth_to_normals(self, depth_map, max_depth=10.0):
+    # 정규화된 깊이맵을 원래 스케일로 되돌립니다.
+        depth_map = max_depth - depth_map
+        # 중앙 차분법으로 x와 y 방향의 편미분을 계산합니다.
+        dy, dx = tf.image.image_gradients(depth_map)
+
+        # 노말맵을 계산합니다.
+        normals = tf.stack([-dx, -dy, tf.ones_like(depth_map)], axis=-1)
+        
+        # 노말벡터를 정규화합니다.
+        normals = tf.nn.l2_normalize(normals, axis=-1)
+
+        return normals
+
+    def normal_map_loss(self, y_true, y_pred):
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        true_normals = self.depth_to_normals(y_true)
+        pred_normals = self.depth_to_normals(y_pred)
+
+        loss = tf.reduce_mean(tf.abs(true_normals - pred_normals))
+
+        return loss
+
     
     def custom_loss(self, y_true, y_pred):
         y_true = tf.cast(y_true, tf.float32)
@@ -87,19 +112,17 @@ class DepthEstimationLoss():
         mae_loss = tf.reduce_mean(mae_loss)
 
         # Structural similarity index loss
-        ssim = 1 - tf.image.ssim(y_true, y_pred, max_val=1000.0/10.0)
+        ssim = 1 - tf.image.ssim(y_true, y_pred, max_val=10.0)
         ssim_loss = tf.clip_by_value(ssim * 0.5, 0, 1)
         # ssim_loss = tf.reduce_mean(ssim_loss)
 
-        # Edges
-        dy_true, dx_true = tf.image.image_gradients(y_true)
-        dy_pred, dx_pred = tf.image.image_gradients(y_pred)
-        edge_loss = tf.reduce_mean(tf.abs(dy_pred - dy_true) + tf.abs(dx_pred - dx_true))
-
+        # normal vector loss
+        normal_loss = self.normal_map_loss(y_true=y_true, y_pred=y_pred)
+        
         # BerHu loss
         huber_delta = 0.5
         huber_loss = tf.where(tf.abs(y_true - y_pred) < huber_delta, 0.5 * tf.square(y_true - y_pred), huber_delta * tf.abs(y_true - y_pred) - 0.5 * huber_delta**2)
         huber_loss = tf.reduce_mean(huber_loss)
         
-        total_loss = ssim_loss + (0.4 * huber_loss) + (0.2 * edge_loss) + (0.1 * mae_loss)
+        total_loss = ssim_loss + (0.5 * huber_loss) + (0.5 * normal_loss) + (0.1 * mae_loss)
         return total_loss

@@ -9,15 +9,15 @@ import time
 
 tf.keras.backend.clear_session()
 tf.get_logger().setLevel('INFO')
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser() 
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name (logging weights name and tensorboard)",
-                    default='230317_Test')
+                    default='EfficientV2S_TEST')
 parser.add_argument("--batch_size",       type=int,    help="Batch size per each GPU",
                     default=8)
 parser.add_argument("--epoch",            type=int,    help="Training epochs",
-                    default=30)
+                    default=50)
 parser.add_argument("--lr",               type=float,  help="Initial learning rate",
                     default=0.0002)
 parser.add_argument("--weight_decay",     type=float,  help="Set Weight Decay",

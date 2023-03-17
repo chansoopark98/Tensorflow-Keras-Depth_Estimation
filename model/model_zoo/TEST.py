@@ -152,7 +152,7 @@ class TEST(object):
     def build_model(self, hp=None) -> tf.keras.models.Model:
         from .get_backbone_features import get_efficientnetv2_features
 
-        features = get_efficientnetv2_features(model='b0', image_size=self.image_size, pretrained=True)
+        features = get_efficientnetv2_features(model='s', image_size=self.image_size, pretrained=True)
         base = features[0]
 
         # backbone freeze

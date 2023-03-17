@@ -24,6 +24,7 @@ if __name__ == "__main__":
         img = img[0]
         fig = plt.figure()
         
+        depth = tf.where(tf.math.is_inf(depth), 0., depth)
         ax0 = fig.add_subplot(rows, cols, 1)
         ax0.imshow(img, vmin=0.0, vmax=max_scale)
         ax0.set_title('Image')
