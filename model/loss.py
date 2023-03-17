@@ -83,18 +83,23 @@ class DepthEstimationLoss():
         y_true = tf.cast(y_true, tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
 
-        mae_loss = tf.abs(y_true - y_pred)
+        mae_loss = tf.keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.NONE)(y_true=y_true, y_pred=y_pred)
         mae_loss = tf.reduce_mean(mae_loss)
 
         # Structural similarity index loss
-        ssim_loss = 1 - tf.image.ssim(y_true, y_pred, max_val=1000.0/10.0)
-        ssim_loss = tf.clip_by_value(ssim_loss * 0.5, 0, 1)
+        ssim = 1 - tf.image.ssim(y_true, y_pred, max_val=1000.0/10.0)
+        ssim_loss = tf.clip_by_value(ssim * 0.5, 0, 1)
         # ssim_loss = tf.reduce_mean(ssim_loss)
 
         # Edges
         dy_true, dx_true = tf.image.image_gradients(y_true)
         dy_pred, dx_pred = tf.image.image_gradients(y_pred)
         edge_loss = tf.reduce_mean(tf.abs(dy_pred - dy_true) + tf.abs(dx_pred - dx_true))
+
+        # BerHu loss
+        huber_delta = 0.5
+        huber_loss = tf.where(tf.abs(y_true - y_pred) < huber_delta, 0.5 * tf.square(y_true - y_pred), huber_delta * tf.abs(y_true - y_pred) - 0.5 * huber_delta**2)
+        huber_loss = tf.reduce_mean(huber_loss)
         
-        total_loss = ssim_loss + edge_loss + (0.1 * mae_loss)
+        total_loss = ssim_loss + (0.4 * huber_loss) + (0.2 * edge_loss) + (0.1 * mae_loss)
         return total_loss

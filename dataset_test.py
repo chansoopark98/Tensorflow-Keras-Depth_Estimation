@@ -17,9 +17,8 @@ if __name__ == "__main__":
 
     i = 1
     for img, depth in test_data.take(100):
-
         depth = tf.cast(depth, tf.float32)
-               
+        
         rows = 1
         cols = 2
         img = img[0]

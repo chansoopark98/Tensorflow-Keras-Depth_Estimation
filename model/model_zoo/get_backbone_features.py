@@ -66,7 +66,7 @@ def get_efficientnetv2_features(model: str = 'b0',
         os32 = base.get_layer('add_34').output # @256
     else:
         raise ValueError('Cannot find your model.')
-    features = [base.input, os2, os4, os8, os16, os32]
+    features = [base, os2, os4, os8, os16, os32]
 
     return features
 

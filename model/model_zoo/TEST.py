@@ -90,7 +90,7 @@ class NearestSampling2D(tf.keras.layers.Layer):
         base_config = super(NearestSampling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-class EfficientDepth(object):
+class TEST(object):
     def __init__(self, image_size: tuple,
         classifier_activation: str, use_multi_gpu: bool = False):
         self.image_size = image_size
@@ -112,59 +112,22 @@ class EfficientDepth(object):
         # x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
 
     def stack_conv(self, x, filters, size, prefix):
-        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=size, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_1')(x)
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_1')(x)
         # x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
-        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
-        x = tf.keras.layers.Activation(self.activation)(x)
+        x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        # x = tf.keras.layers.Activation(self.activation)(x)
 
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=1, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_2')(x)
-        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
-        x = tf.keras.layers.Activation(self.activation)(x)
+        x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        # x = tf.keras.layers.Activation(self.activation)(x)
         return x
-
-    def up_project(self, x, skip, filters, prefix):
-        "up_project function"
-        x = NearestSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
-
-        # skip = cbam_block(skip)
-        x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
-
-        # Final std conv
-        x = self.stack_conv(x, filters=filters, prefix=prefix)
-        
-        return x
-    
-    def se_module(self, x, se_ratio=4, name=""):
-        channel_axis = 1 if tf.keras.backend.image_data_format() == "channels_first" else -1
-        h_axis, w_axis = [2, 3] if tf.keras.backend.image_data_format() == "channels_first" else [1, 2]
-
-        filters = x.shape[channel_axis]
-        
-        reduction = filters // se_ratio
-        
-        se = tf.reduce_mean(x, [h_axis, w_axis], keepdims=True)
-        se = tf.keras.layers.Conv2D(reduction, kernel_size=1, kernel_initializer=self.kernel_initializer, use_bias=True, name=name + "1_conv")(se)
-        
-        se = tf.keras.layers.Activation("swish")(se)
-        se = tf.keras.layers.Conv2D(filters, kernel_size=1, use_bias=True, kernel_initializer=self.kernel_initializer, name=name + "2_conv")(se)
-        se = tf.keras.layers.Activation("sigmoid")(se)
-        
-        return tf.keras.layers.Multiply()([x, se])
     
     def guide_up_project(self, x, skip, filters, prefix):
-        x = NearestSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
-        x = self.stack_conv(x=x, filters=filters,  size=3, prefix=prefix+'_stack_5x5_1')
-
-        
-        skip = self.stack_conv(x=skip, filters=filters / 2, size=3, prefix=prefix+'skip_3x3')
-        skip = cbam_block(skip)
-        
+        x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
-        x = self.stack_conv(x=x, filters=filters, size=5, prefix=prefix+'_stack_5x5_2')
-        # x = self.se_module(x, name=prefix)
+        x = self.stack_conv(x=x, filters=filters, size=3, prefix=prefix+'_stack_5x5_2')
         x = self.stack_conv(x=x, filters=filters, size=3,prefix=prefix+'_stack_3x3_1')
 
-        # x = cbam_block(x)
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
@@ -173,15 +136,29 @@ class EfficientDepth(object):
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
         # x = tf.keras.layers.Activation('relu')(x)
-        x = NearestSampling2D((2, 2), name='final_upsampling2d')(x)
+        # x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
        
         return x
+    
+    def _make_divisible(self, v, divisor=4, min_value=None):
+        if min_value is None:
+            min_value = divisor
+        new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+        # Make sure that round down does not go down by more than 10%.
+        if new_v < 0.9 * v:
+            new_v += divisor
+        return new_v
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
         from .get_backbone_features import get_efficientnetv2_features
 
-        features = get_efficientnetv2_features(model='s', image_size=self.image_size, pretrained=True)
-        input_tensor = features[0]
+        features = get_efficientnetv2_features(model='b0', image_size=self.image_size, pretrained=True)
+        base = features[0]
+
+        # backbone freeze
+        for layer in base.layers: layer.trainable = True
+
+        input_tensor = base.input
 
         os2 = features[1]
         os4 = features[2]
@@ -196,11 +173,13 @@ class EfficientDepth(object):
         os16 = base.get_layer('block5e_add').output # @112
         os32 = base.get_layer('block6h_add').output # @192
         """
-
-        x = self.guide_up_project(x=x, skip=os16, filters=256, prefix='os16')
-        x = self.guide_up_project(x=x, skip=os8, filters=128, prefix='os8')
-        x = self.guide_up_project(x=x, skip=os4, filters=64, prefix='os4')
-        x = self.guide_up_project(x=x, skip=os2, filters=32, prefix='os2')
+        decode_filters = tf.keras.backend.int_shape(x)[3]
+        
+        x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters), prefix='os16')
+        x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 2), prefix='os8')
+        x = self.guide_up_project(x=x, skip=os4,  filters=self._make_divisible(decode_filters / 4), prefix='os4')
+        x = self.guide_up_project(x=x, skip=os2,  filters=self._make_divisible(decode_filters / 8), prefix='os2')
+        x = self.guide_up_project(x=x, skip=input_tensor,  filters=self._make_divisible(decode_filters / 16), prefix='os1')
         
         # os2 classifer -> 256x256
         output = self.classifier(x=x)
@@ -210,5 +189,5 @@ class EfficientDepth(object):
         return model
 
 if __name__ == '__main__':
-    model = EfficientDepth(image_size=(512, 512), classifier_activation=None)
+    model = TEST(image_size=(512, 512), classifier_activation=None)
     model.build_model()

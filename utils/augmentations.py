@@ -7,12 +7,18 @@ class Augmentation(object):
         self.image_size = image_size
         self.max_crop_scale = max_crop_scale
 
+    def depth_norm(self, depth: tf.Tensor, max_depth: float) -> tf.Tensor:
+        return max_depth / depth
+
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
-
-        # Depth convert -> m to mm
+        
+        # Depth convert -> m to cm
         depth *= 100.
-        depth = 1000. / depth
+
+        depth = tf.clip_by_value(depth, 10., 1000.)
+
+        depth = self.depth_norm(depth=depth, max_depth=1000.)
 
         depth = tf.clip_by_value(depth, 0., 100.)
         depth = tf.where(tf.math.is_inf(depth), 0., depth)

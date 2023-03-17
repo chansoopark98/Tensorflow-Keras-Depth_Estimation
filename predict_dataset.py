@@ -20,7 +20,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0316/_Bs-32_Ep-50_Lr-0.0004_ImSize-480_Opt-adam_multi-gpu_0316_230316_EfficientDepth_new_loss_best_ssim.h5')
+                    default='0316/_Bs-16_Ep-50_Lr-0.0004_ImSize-480_Opt-adam_multi-gpu_0316_230316_EfficientDepth_new_loss_best_ssim.h5')
 
 args = parser.parse_args()
 
@@ -41,9 +41,14 @@ if __name__ == '__main__':
     for img, depth in test_data.take(100):
         pred = model.predict(img)
 
+        # depth *= 100.
+        # depth = 1000. / depth
+        pred = 1000. / pred
+        depth = 1000. / depth
+
         # Structural similarity (SSIM) index
         # l_ssim = K.mean(K.clip((1 - tf.image.ssim(y_true, y_pred, 1.0)) * 0.5, 0, 1))
-        ssim_value = tf.image.ssim(depth, pred, 1.0, filter_size=7, k1=0.01 ** 2, k2=0.03 ** 2)
+        ssim_value = tf.image.ssim(depth, pred, 1000, filter_size=7, k1=0.01 ** 2, k2=0.03 ** 2)
         print(tf.reduce_mean(ssim_value))
 
         divide_shape = tf.cast(tf.reduce_prod(tf.shape(depth)[1:]), tf.float32)
@@ -53,17 +58,17 @@ if __name__ == '__main__':
         cols = 4
         fig = plt.figure()
         ax0 = fig.add_subplot(rows, cols, 1)
-        ax0.imshow(img[0], cmap='plasma', vmin=0.0, vmax=10.0)
+        ax0.imshow(img[0], cmap='plasma', vmin=0.0, vmax=1000)
         ax0.set_title('img')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 2)
-        ax0.imshow(pred[0], cmap='plasma', vmin=0.0, vmax=10.0)
+        ax0.imshow(pred[0], cmap='plasma', vmin=0.0, vmax=1000)
         ax0.set_title('pred_depth')
         ax0.axis("off")
 
         ax0 = fig.add_subplot(rows, cols, 3)
-        ax0.imshow(depth[0], cmap='plasma', vmin=0.0, vmax=10.0)
+        ax0.imshow(depth[0], cmap='plasma', vmin=0.0, vmax=1000)
         ax0.set_title('gt')
         ax0.axis("off")
 
