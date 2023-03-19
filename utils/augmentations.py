@@ -14,17 +14,15 @@ class Augmentation(object):
         image /= 255.
         
         # inverse Depth convert -> m to cm
-        # depth *= 100.
-        # depth = tf.clip_by_value(depth, 10., 1000.)
-        # depth = self.depth_norm(depth=depth, max_depth=1000.)
-        # depth = tf.clip_by_value(depth, 0., 100.)
-        # depth = tf.where(tf.math.is_inf(depth), 0., depth)
-        # depth = tf.where(tf.math.is_nan(depth), 0., depth)
-        # depth = tf.where(depth == 100., 0., depth)
+        depth *= 100.
+        depth = tf.clip_by_value(depth, 10., 1000.)
+        depth = self.depth_norm(depth=depth, max_depth=1000.)
+        depth = tf.clip_by_value(depth, 0., 100.)
+        depth = tf.where(tf.math.is_inf(depth), 0., depth)
+        depth = tf.where(tf.math.is_nan(depth), 0., depth)
+        depth = tf.where(depth == 100., 0., depth)
 
         # depth = tf.clip_by_value(depth, 0.01, 9.99)
-        depth = 10.0 - depth
-        depth = tf.where(depth>=10, 0., depth)
         
         return (image, depth)
         

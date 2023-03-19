@@ -118,15 +118,15 @@ class GenerateDatasets(DataLoadHandler):
         image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-        # if tf.random.uniform([]) > 0.5:
-            # image, depth = self.augmentations.random_rotate(image=image, depth=depth)
+        if tf.random.uniform([]) > 0.2:
+            image, depth = self.augmentations.random_rotate(image=image, depth=depth)
 
         # Color augmentation
-        if tf.random.uniform([]) > 0.3:
+        if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.random_gamma(image=image, depth=depth)
-        if tf.random.uniform([]) > 0.3:
+        if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.random_brightness(image=image, depth=depth)
-        if tf.random.uniform([]) > 0.3:
+        if tf.random.uniform([]) > 0.5:
             image, depth = self.augmentations.random_color(image=image, depth=depth)
 
         if tf.random.uniform([]) > 0.5:

@@ -29,7 +29,7 @@ def get_resnet_features(model: str = 'resnet50',
         os32 = base.get_layer('conv5_block3_out').output # @2048
     else:
         raise ValueError('Cannot find your model. Resnet series only valid resnet50, resnet101')
-    features = [base.input, os2, os4, os8, os16, os32]
+    features = [base, os2, os4, os8, os16, os32]
 
     return features
 
