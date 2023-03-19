@@ -117,13 +117,13 @@ class TEST(object):
         x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
         # x = tf.keras.layers.Activation(self.activation)(x)
 
-        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=1, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_2')(x)
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_2')(x)
         x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
         # x = tf.keras.layers.Activation(self.activation)(x)
         return x
     
     def guide_up_project(self, x, skip, filters, prefix):
-        x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
+        x = NearestSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
         x = self.stack_conv(x=x, filters=filters, size=3, prefix=prefix+'_stack_5x5_2')
         x = self.stack_conv(x=x, filters=filters, size=3,prefix=prefix+'_stack_3x3_1')

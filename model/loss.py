@@ -121,7 +121,7 @@ class DepthEstimationLoss():
         # Edges
         dy_true, dx_true = tf.image.image_gradients(y_true)
         dy_pred, dx_pred = tf.image.image_gradients(y_pred)
-        normal_loss = K.mean(K.abs(dy_pred - dy_true) + K.abs(dx_pred - dx_true), axis=-1)
+        normal_loss = tf.reduce_mean(K.abs(dy_pred - dy_true) + K.abs(dx_pred - dx_true))
         
         # BerHu loss
         huber_delta = 0.5
