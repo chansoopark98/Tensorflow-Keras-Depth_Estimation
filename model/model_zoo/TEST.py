@@ -99,7 +99,7 @@ class TEST(object):
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
         self.EPSILON = 0.001
-        self.activation = 'swish' # self.relu
+        self.activation = 'relu' # self.relu
         self.configuration_default()
 
     def configuration_default(self):
@@ -118,25 +118,27 @@ class TEST(object):
         # x = tf.keras.layers.Activation(self.activation)(x)
 
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_2')(x)
+        # x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
         x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
         # x = tf.keras.layers.Activation(self.activation)(x)
         return x
     
     def guide_up_project(self, x, skip, filters, prefix):
-        x = NearestSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
+        x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
         x = self.stack_conv(x=x, filters=filters, size=3, prefix=prefix+'_stack_5x5_2')
         x = self.stack_conv(x=x, filters=filters, size=3,prefix=prefix+'_stack_3x3_1')
+        x = cbam_block(cbam_feature=x)
 
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
-        x = tf.keras.layers.Conv2D(filters=1, kernel_size=3, strides=1, use_bias=True,
+        x = tf.keras.layers.Conv2D(filters=1, kernel_size=1, strides=1, use_bias=True,
                                     padding='same',
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
         # x = tf.keras.layers.Activation('relu')(x)
-        # x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
+        x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
        
         return x
     
@@ -167,6 +169,11 @@ class TEST(object):
         os8 = features[3]
         os16 = features[4]
         x = features[5]
+
+        decode_filters = tf.keras.backend.int_shape(x)[3]
+        
+        x = self.stack_conv(x=x, filters=self._make_divisible(decode_filters), size=3, prefix='bottle_1')
+        x = self.stack_conv(x=x, filters=self._make_divisible(decode_filters), size=3,prefix='bottle_2')
         
         """
         os2 = base.get_layer('stem_activation').output # @32
@@ -175,13 +182,12 @@ class TEST(object):
         os16 = base.get_layer('block5e_add').output # @112
         os32 = base.get_layer('block6h_add').output # @192
         """
-        decode_filters = tf.keras.backend.int_shape(x)[3]
+
         
-        x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters), prefix='os16')
-        x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 2), prefix='os8')
-        x = self.guide_up_project(x=x, skip=os4,  filters=self._make_divisible(decode_filters / 4), prefix='os4')
-        x = self.guide_up_project(x=x, skip=os2,  filters=self._make_divisible(decode_filters / 8), prefix='os2')
-        x = self.guide_up_project(x=x, skip=input_tensor,  filters=self._make_divisible(decode_filters / 16), prefix='os1')
+        x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters / 2), prefix='os16')
+        x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 4), prefix='os8')
+        x = self.guide_up_project(x=x, skip=os4,  filters=self._make_divisible(decode_filters / 8), prefix='os4')
+        x = self.guide_up_project(x=x, skip=os2,  filters=self._make_divisible(decode_filters / 16), prefix='os2')
         
         # os2 classifer -> 256x256
         output = self.classifier(x=x)

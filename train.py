@@ -13,13 +13,13 @@ parser = argparse.ArgumentParser()
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name (logging weights name and tensorboard)",
-                    default='resnet50_TEST_invert_lossv2_adam_amsgrad')
+                    default='0322_resnet101')
 parser.add_argument("--batch_size",       type=int,    help="Batch size per each GPU",
                     default=8)
 parser.add_argument("--epoch",            type=int,    help="Training epochs",
-                    default=50)
+                    default=30)
 parser.add_argument("--lr",               type=float,  help="Initial learning rate",
-                    default=0.0002)
+                    default=0.0001)
 parser.add_argument("--weight_decay",     type=float,  help="Set Weight Decay",
                     default=0.00001)
 parser.add_argument("--image_size",       type=tuple,  help="Set model input size",

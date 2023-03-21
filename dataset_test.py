@@ -10,14 +10,16 @@ test_data = dataset.get_trainData(dataset.train_data)
 
 tf.config.set_soft_device_placement(True)
 
-max_scale = 10.
+max_scale = 10
 sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
 plt.colorbar(sm)
-if __name__ == "__main__":
 
+if __name__ == "__main__":
+    max_depth_scale = 0
+    min_depth_scale = 0
     i = 1
-    for img, depth in test_data.take(100):
-        depth = tf.cast(depth, tf.float32)
+    for img, depth in test_data.take(47584):
+        # depth = tf.cast(depth, tf.float32)
         
         rows = 1
         cols = 2
@@ -35,11 +37,17 @@ if __name__ == "__main__":
         ax0.set_title('Depth map')
         ax0.axis("off")
 
-        # fig.subplots_adjust(right=1.0)
-        # cbar_ax = fig.add_axes([0.72, 0.35, 0.02, 0.3])
-        # fig.colorbar(sm, cax=cbar_ax)
-
         plt.show()
+
+        print(i)
+        i+=1
         
-        # plt.savefig('./plt_outputs/output_{0}'.format(i), dpi=300)
-        # i += 1
+        max_depth = tf.reduce_max(depth)
+        if max_depth >= max_depth_scale:
+            max_depth_scale = max_depth
+        min_depth = tf.reduce_min(depth)
+        if min_depth <= min_depth_scale:
+            min_depth_scale = min_depth
+
+    print('max_depth_scale', max_depth_scale)
+    print('min_depth_scale', min_depth_scale)

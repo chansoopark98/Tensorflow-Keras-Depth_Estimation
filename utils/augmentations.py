@@ -6,25 +6,30 @@ class Augmentation(object):
     def __init__(self, image_size: tuple, max_crop_scale: float):
         self.image_size = image_size
         self.max_crop_scale = max_crop_scale
+        self.min_depth = 0.01
+        self.max_depth = 1.0
+
 
     def depth_norm(self, depth: tf.Tensor, max_depth: float) -> tf.Tensor:
         return max_depth / depth
 
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
+        depth /= 10.
         
-        # inverse Depth convert -> m to cm
-        depth *= 100.
-        depth = tf.clip_by_value(depth, 10., 1000.)
-        depth = self.depth_norm(depth=depth, max_depth=1000.)
-        depth = tf.clip_by_value(depth, 0., 100.)
-        depth = tf.where(tf.math.is_inf(depth), 0., depth)
-        depth = tf.where(tf.math.is_nan(depth), 0., depth)
-        depth = tf.where(depth == 100., 0., depth)
+        depth_zero_mask = tf.cast(tf.math.equal(depth, 0.), tf.float32)
+        depth = tf.clip_by_value(depth, 0.05, 1.0)
 
-        # depth = tf.clip_by_value(depth, 0.01, 9.99)
-        
-        return (image, depth)
+        inverse_depth_data = 1 / depth
+
+        # Reset the masked areas (previously zero) to zero
+        inverse_depth_data *= (1.0 - depth_zero_mask)
+
+        # Clip the remaining values
+        inverse_depth_data = tf.clip_by_value(inverse_depth_data, 0., 20.)
+
+        return image, inverse_depth_data
+
         
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         random_gamma = tf.random.uniform([], 0.8, 1.2)
