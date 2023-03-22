@@ -127,6 +127,7 @@ class TEST(object):
     
     def guide_up_project(self, x, skip, filters, prefix):
         x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
+        skip = cbam_block(cbam_feature=skip)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
         x = self.stack_conv(x=x, filters=filters, size=3, prefix=prefix+'_stack_5x5_2')
         x = self.stack_conv(x=x, filters=filters, size=3,prefix=prefix+'_stack_3x3_1')
@@ -162,7 +163,7 @@ class TEST(object):
         base = features[0]
 
         # backbone freeze
-        for layer in base.layers: layer.trainable = True
+        # for layer in base.layers: layer.trainable = True
 
         input_tensor = base.input
 
@@ -174,8 +175,13 @@ class TEST(object):
 
         decode_filters = tf.keras.backend.int_shape(x)[3]
         
-        x = self.stack_conv(x=x, filters=self._make_divisible(decode_filters), size=3, prefix='bottle_1')
-        x = self.stack_conv(x=x, filters=self._make_divisible(decode_filters), size=3,prefix='bottle_2')
+        x = tf.keras.layers.Conv2D(filters=self._make_divisible(decode_filters),
+                                   kernel_size=3,
+                                   strides=1,
+                                   padding='same',
+                                   kernel_initializer=self.kernel_initializer, use_bias=False)(x)
+        x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
+        x = tf.keras.layers.Activation(self.activation)(x)
 
         x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters / 2), prefix='os16')
         x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 4), prefix='os8')
