@@ -79,8 +79,8 @@ class ModelConfiguration(GenerateDatasets):
         self.USE_WEIGHT_DECAY = self.args.use_weight_decay
         self.MIXED_PRECISION = self.args.mixed_precision
         self.DISTRIBUTION_MODE = self.args.multi_gpu
-        if self.DISTRIBUTION_MODE:
-            self.BATCH_SIZE *= 2
+        # if self.DISTRIBUTION_MODE:
+            # self.BATCH_SIZE *= 2
 
     def configuration_dataset(self) -> None:
         """
