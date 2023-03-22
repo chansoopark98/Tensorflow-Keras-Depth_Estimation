@@ -115,14 +115,14 @@ class TEST(object):
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_1')(x)
         # x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
         # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
-        x = tf.keras.activations.swish(x)
-        # x = tf.keras.layers.Activation(self.activation)(x)
+        # x = tf.keras.activations.swish(x)
+        x = tf.keras.layers.Activation(self.activation)(x)
 
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_2')(x)
         # x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
         # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
-        x = tf.keras.activations.swish(x)
-        # x = tf.keras.layers.Activation(self.activation)(x)
+        # x = tf.keras.activations.swish(x)
+        x = tf.keras.layers.Activation(self.activation)(x)
         return x
     
     def guide_up_project(self, x, skip, filters, prefix):
@@ -154,11 +154,11 @@ class TEST(object):
         return new_v
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
-        from .get_backbone_features import get_efficientnetv2_features
-        # from .get_backbone_features import get_resnet_features
+        # from .get_backbone_features import get_efficientnetv2_features
+        from .get_backbone_features import get_resnet_features
 
-        features = get_efficientnetv2_features(model='s', image_size=self.image_size, pretrained=True)
-        # features = get_resnet_features(model='resnet50', image_size=self.image_size, pretrained=True)
+        # features = get_efficientnetv2_features(model='s', image_size=self.image_size, pretrained=True)
+        features = get_resnet_features(model='resnet50', image_size=self.image_size, pretrained=True)
         base = features[0]
 
         # backbone freeze
