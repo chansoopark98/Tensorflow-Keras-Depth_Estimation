@@ -23,7 +23,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0320/_Bs-8_Ep-30_Lr-0.0001_ImSize-480_Opt-adam_multi-gpu_0320_resnet50_lossv2_bottle_best_val_loss.h5')
+                    default='0322/_Bs-8_Ep-30_Lr-0.0001_ImSize-480_Opt-adam_multi-gpu_0322_0322_resnet101_best_loss.h5')
 
 args = parser.parse_args()
 
@@ -56,27 +56,14 @@ if __name__ == '__main__':
     model.load_weights(args.checkpoint_dir + args.weight_name)
     model.summary()
 
-    # select roi
-    rgb = camera.get_color()
-    x, y, w, h = cv2.selectROI(rgb)
-
-    # pointcloud roi mask
-    mask = np.zeros(rgb.shape[:2], dtype=np.uint8)
-    mask[y:y+h, x:x+w] = 1
-    mask = mask.astype(np.int16)
-    indicies = np.where(mask==1)
-        
-    cv2.destroyAllWindows()
     idx = 0
     while cv2.waitKey(1000) != ord('q'):
         camera.capture()
         frame = camera.get_color()
 
-        cv2.imshow('test', frame)
+        # cv2.imshow('test', frame)
         
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-
 
         rgb = tf.image.resize(rgb, size=args.image_size,
                 method=tf.image.ResizeMethod.BILINEAR)
@@ -89,38 +76,37 @@ if __name__ == '__main__':
         pred = model.predict(img)
 
 
-        rgb = tf.image.resize(rgb, size=(1536, 2048),
-                method=tf.image.ResizeMethod.BILINEAR)
+        # rgb = tf.image.resize(rgb, size=(1536, 2048),
+        #         method=tf.image.ResizeMethod.BILINEAR)
 
-        pred = tf.image.resize(pred, size=(1536, 2048),
-                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        # pred = tf.image.resize(pred, size=(1536, 2048),
+        #         method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         
-
-
-        # pred = 1000 / pred
-        pred *= 1000
+        pred = (1. / pred) * 10.
+        pred *= 100
+        pred = tf.clip_by_value(pred, 0., 1000.)
         pred = pred[0].numpy()
 
-        rgb = rgb.numpy().astype(np.uint8)
-        print(rgb.shape)
-        object_mask = np.zeros(rgb.shape[:2], dtype=np.uint8)
+        # rgb = rgb.numpy().astype(np.uint8)
+        # print(rgb.shape)
+        # object_mask = np.zeros(rgb.shape[:2], dtype=np.uint8)
 
-        roi_rgb = rgb.copy()[y:y+h, x:x+w]
+        # roi_rgb = rgb.copy()[y:y+h, x:x+w]
 
         # 크로마키
-        hsv = cv2.cvtColor(roi_rgb.copy(), cv2.COLOR_BGR2HSV)
-        green_mask = cv2.inRange(hsv, (37, 109, 0), (70, 255, 255)) # 영상, 최솟값, 최댓값
-        green_mask = cv2.bitwise_not(green_mask)
+        # hsv = cv2.cvtColor(roi_rgb.copy(), cv2.COLOR_BGR2HSV)
+        # green_mask = cv2.inRange(hsv, (37, 109, 0), (70, 255, 255)) # 영상, 최솟값, 최댓값
+        # green_mask = cv2.bitwise_not(green_mask)
 
-        object_mask[y:y+h, x:x+w] = green_mask
+        # object_mask[y:y+h, x:x+w] = green_mask
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        object_mask = cv2.erode(object_mask, kernel, iterations=2)
+        # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        # object_mask = cv2.erode(object_mask, kernel, iterations=2)
 
-        object_mask = (object_mask / 255.).astype(np.uint16)
+        # object_mask = (object_mask / 255.).astype(np.uint16)
         
-        pred *= np.expand_dims(object_mask.astype(np.uint8), axis=-1)
-        rgb *= np.expand_dims(object_mask.astype(np.uint8), axis=-1)
+        # pred *= np.expand_dims(object_mask.astype(np.uint8), axis=-1)
+        # rgb *= np.expand_dims(object_mask.astype(np.uint8), axis=-1)
         
 
         # pred = camera.get_transformed_depth()
@@ -128,7 +114,7 @@ if __name__ == '__main__':
         # plt.show()
 
          # rgb image scaling 
-        rgb = rgb
+        rgb = rgb.numpy()
         rgb = rgb.astype('uint8')
 
         width = rgb.shape[1]
@@ -138,15 +124,19 @@ if __name__ == '__main__':
         #                             [0., 0., 1.]])
         
         # intrinsic_matrix = np.array([[970.65313721, 0.,1026.76464844],
-        #                              [0., 970.93304443, 775.31921387],
+        #                              [0., 970.93304443, 775.31921387], 
         #                              [0., 0., 1.]])
 
         intrinsic_matrix = camera.get_color_intrinsic_matrix()
-                                                             
-        fx = intrinsic_matrix[0, 0]
-        fy = intrinsic_matrix[1, 1]
-        cx = intrinsic_matrix[0, 2]
-        cy = intrinsic_matrix[1, 2]
+
+        scale_width = 640 / 2048
+        scale_height = 480 / 1536
+        width = 640
+        height = 480
+        fx = intrinsic_matrix[0, 0] * scale_width
+        fy = intrinsic_matrix[1, 1] * scale_height
+        cx = intrinsic_matrix[0, 2] * scale_width
+        cy = intrinsic_matrix[1, 2] * scale_height
 
         # convert rgb image to open3d depth map
         rgb = o3d.geometry.Image(rgb)
@@ -178,13 +168,13 @@ if __name__ == '__main__':
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, camera_intrinsics)
         # pcd.voxel_down_sample(0.1)
 
-        cl, ind = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
-        pcd = pcd.select_by_index(ind)
+        # cl, ind = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+        # pcd = pcd.select_by_index(ind)
 
-        # o3d.visualization.draw_geometries([pcd])
+        o3d.visualization.draw_geometries([pcd])
 
         # Save point cloud
-        o3d.io.write_point_cloud(save_pcd_dir + 'test_pointcloud_{0}.pcd'.format(idx), pcd)
+        # o3d.io.write_point_cloud(save_pcd_dir + 'test_pointcloud_{0}.pcd'.format(idx), pcd)
 
         # Save rgb image
         # cv2.imwrite(save_rgb_dir + 'test_rgb_{0}.png'.format(idx), save_rgb)

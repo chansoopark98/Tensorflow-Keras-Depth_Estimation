@@ -22,7 +22,7 @@ parser.add_argument("--threshold",           type=float,  help="Post processing 
 parser.add_argument("--checkpoint_dir",      type=str,    help="Setting the model storage directory",
                     default='./checkpoints/')
 parser.add_argument("--weight_name",         type=str,    help="Saved model weights directory",
-                    default='0317/_Bs-8_Ep-30_Lr-0.0002_ImSize-480_Opt-adam_multi-gpu_0317_230317_Test_best_loss.h5')
+                    default='0322/_Bs-8_Ep-30_Lr-0.0001_ImSize-480_Opt-adam_multi-gpu_0322_0322_resnet101_best_loss.h5')
 
 args = parser.parse_args()
 
@@ -82,12 +82,12 @@ if __name__ == '__main__':
 
         pred = model.predict(img)
         pred = pred[0]
-        pred = 1000. / pred
+        pred = (1. / pred) * 10.
 
         # pred = pred * 1000
-        pred = pred.astype(np.uint8)
+        # pred = pred.astype(np.uint8)
         # pred = cv2.applyColorMap(pred, cv2.COLORMAP_PLASMA)
-        pred = colorize(pred, (0, 1000), colormap=cv2.COLORMAP_JET)
+        pred = colorize(pred, (0, 10), colormap=cv2.COLORMAP_JET)
 
         cv2.imshow('test', pred)
         cv2.waitKey(1)
