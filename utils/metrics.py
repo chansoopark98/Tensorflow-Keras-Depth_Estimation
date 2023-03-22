@@ -14,6 +14,20 @@ def ssim_metric(y_true, y_pred):
     ssim = tf.image.ssim(y_true, y_pred, 1./0.05)
     return ssim
 
+def delta_threshold_metric(y_true, y_pred):
+    # Calculate the ratio of the predicted depth to the ground truth depth and vice versa
+    ratio_1 = y_pred / y_true
+    ratio_2 = y_true / y_pred
+
+    # Compute the maximum of the two ratios for each pixel
+    max_ratios = tf.math.maximum(ratio_1, ratio_2)
+
+    # Calculate the percentage of pixels that fall within the threshold
+    within_threshold = tf.math.less_equal(max_ratios, 1.25)
+    metric = tf.math.reduce_mean(tf.cast(within_threshold, tf.float32))
+
+    return metric
+
 class RMSE(tf.keras.metrics.RootMeanSquaredError):
   def update_state(self, y_true, y_pred, sample_weight=None):
         y_true = tf.cast(y_true, tf.float32)

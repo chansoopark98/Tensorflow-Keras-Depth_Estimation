@@ -157,10 +157,10 @@ class ModelConfiguration(GenerateDatasets):
 
     def __set_metrics(self):
         # rmse_metric = tf.keras.metrics.RootMeanSquaredError()
-        from utils.metrics import RMSE, ssim_metric
+        from utils.metrics import RMSE, ssim_metric, delta_threshold_metric
         rmse_metric = RMSE()
         
-        metrics = [rmse_metric, ssim_metric]
+        metrics = [rmse_metric, ssim_metric, delta_threshold_metric]
         return metrics
 
     def __configuration_model(self):
