@@ -9,8 +9,7 @@ def depth_inverse(depth, max_depth=1.0):
 def ssim_metric(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
-    # y_true = depth_inverse(depth=y_true)
-    # y_pred = depth_inverse(depth=y_pred)
+
     ssim = tf.image.ssim(y_true, y_pred, 1./0.05)
     return ssim
 

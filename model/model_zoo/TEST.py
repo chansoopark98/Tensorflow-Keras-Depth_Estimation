@@ -99,7 +99,7 @@ class TEST(object):
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
         self.EPSILON = 0.001
-        self.activation = 'swish' # self.relu
+        self.activation = 'relu' # self.relu
         self.configuration_default()
 
     def configuration_default(self):
@@ -176,20 +176,11 @@ class TEST(object):
         
         x = self.stack_conv(x=x, filters=self._make_divisible(decode_filters), size=3, prefix='bottle_1')
         x = self.stack_conv(x=x, filters=self._make_divisible(decode_filters), size=3,prefix='bottle_2')
-        
-        """
-        os2 = base.get_layer('stem_activation').output # @32
-        os4 = base.get_layer('block2b_add').output # @32
-        os8 = base.get_layer('block3b_add').output # @48
-        os16 = base.get_layer('block5e_add').output # @112
-        os32 = base.get_layer('block6h_add').output # @192
-        """
 
-        
-        x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters), prefix='os16')
-        x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 2), prefix='os8')
-        x = self.guide_up_project(x=x, skip=os4,  filters=self._make_divisible(decode_filters / 4), prefix='os4')
-        x = self.guide_up_project(x=x, skip=os2,  filters=self._make_divisible(decode_filters / 8), prefix='os2')
+        x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters / 2), prefix='os16')
+        x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 4), prefix='os8')
+        x = self.guide_up_project(x=x, skip=os4,  filters=self._make_divisible(decode_filters / 8), prefix='os4')
+        x = self.guide_up_project(x=x, skip=os2,  filters=self._make_divisible(decode_filters / 16), prefix='os2')
         
         # os2 classifer -> 256x256
         output = self.classifier(x=x)

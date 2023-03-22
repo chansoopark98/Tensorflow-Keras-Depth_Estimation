@@ -35,24 +35,23 @@ class DataLoadHandler(object):
         self.nyu_train = tfds.load(name='NyuConverted', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
         self.nyu_valid = tfds.load(name='NyuConverted', data_dir=self.data_dir, split='validation')
 
-        # self.diode_train = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
-        # self.diode_valid = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='validation')
+        self.diode_train = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='train[:{0}%]'.format(self.percentage))
+        self.diode_valid = tfds.load(name='DiodeDataset', data_dir=self.data_dir, split='validation')
 
         # self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(90))
         # self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[{0}%:]'.format(90))
         
-        self.train_data = self.nyu_train #.concatenate(self.diode_train) # self.nyu_train.concatenate(self.custom_train)
-        self.valid_data = self.nyu_valid #.concatenate(self.diode_valid)
+        self.train_data = self.nyu_train.concatenate(self.diode_train) # self.nyu_train.concatenate(self.custom_train)
+        self.valid_data = self.nyu_valid.concatenate(self.diode_valid)
         self.test_data = self.valid_data
 
         # self.number_custom_train = self.custom_train.reduce(0, lambda x, _: x + 1).numpy()
         # self.number_custom_valid = self.custom_valid.reduce(0, lambda x, _: x + 1).numpy()
         
-        self.number_train = 47584 #self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-        self.number_valid = 654 # self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_train = 47584 + 8574 #self.train_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_valid = 654 + 325 # self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_test = self.number_valid
         
-
         self.train_data.shuffle(self.number_train)
 
         # Print  dataset meta data
@@ -111,12 +110,14 @@ class GenerateDatasets(DataLoadHandler):
     
     @tf.function
     def augmentation(self, image: tf.Tensor, depth: tf.Tensor)-> Union[tf.Tensor, tf.Tensor]:
-        # Transform augmentation
-        # if tf.random.uniform([]) > 0.5:
-        #     image, depth = self.augmentations.random_crop(image=image, depth=depth)
-        # else:
         image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.random_scaling(image, depth=depth)
+
+        if tf.random.uniform([]) > 0.5:
+            image, depth = self.augmentations.add_gaussian_noise(image=image, depth=depth)
 
         if tf.random.uniform([]) > 0.2:
             image, depth = self.augmentations.random_rotate(image=image, depth=depth)

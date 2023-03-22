@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 
 # Set Training Options
 parser.add_argument("--model_prefix",     type=str,    help="Model name (logging weights name and tensorboard)",
-                    default='0322_efficientnetv2s_image-1to1')
+                    default='0323_resnet50_0to1_newAug')
 parser.add_argument("--batch_size",       type=int,    help="Batch size per each GPU",
                     default=8)
 parser.add_argument("--epoch",            type=int,    help="Training epochs",
