@@ -99,7 +99,7 @@ class TEST(object):
         self.use_multi_gpu = use_multi_gpu
         self.MOMENTUM = 0.99
         self.EPSILON = 0.001
-        self.activation = 'relu' # self.relu
+        self.activation = 'swish' # self.relu
         self.configuration_default()
 
     def configuration_default(self):
@@ -114,12 +114,14 @@ class TEST(object):
     def stack_conv(self, x, filters, size, prefix):
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_1')(x)
         # x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
-        x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        x = tf.keras.activations.swish(x)
         # x = tf.keras.layers.Activation(self.activation)(x)
 
         x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', kernel_initializer=self.kernel_initializer, use_bias=True, name=prefix+'_conv_2')(x)
         # x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
-        x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        # x = tf.keras.layers.LeakyReLU(alpha=0.2)(x)
+        x = tf.keras.activations.swish(x)
         # x = tf.keras.layers.Activation(self.activation)(x)
         return x
     
@@ -152,11 +154,11 @@ class TEST(object):
         return new_v
 
     def build_model(self, hp=None) -> tf.keras.models.Model:
-        # from .get_backbone_features import get_efficientnetv2_features
-        from .get_backbone_features import get_resnet_features
+        from .get_backbone_features import get_efficientnetv2_features
+        # from .get_backbone_features import get_resnet_features
 
-        # features = get_efficientnetv2_features(model='s', image_size=self.image_size, pretrained=True)
-        features = get_resnet_features(model='resnet50', image_size=self.image_size, pretrained=True)
+        features = get_efficientnetv2_features(model='s', image_size=self.image_size, pretrained=True)
+        # features = get_resnet_features(model='resnet50', image_size=self.image_size, pretrained=True)
         base = features[0]
 
         # backbone freeze
@@ -184,10 +186,10 @@ class TEST(object):
         """
 
         
-        x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters / 2), prefix='os16')
-        x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 4), prefix='os8')
-        x = self.guide_up_project(x=x, skip=os4,  filters=self._make_divisible(decode_filters / 8), prefix='os4')
-        x = self.guide_up_project(x=x, skip=os2,  filters=self._make_divisible(decode_filters / 16), prefix='os2')
+        x = self.guide_up_project(x=x, skip=os16, filters=self._make_divisible(decode_filters), prefix='os16')
+        x = self.guide_up_project(x=x, skip=os8,  filters=self._make_divisible(decode_filters / 2), prefix='os8')
+        x = self.guide_up_project(x=x, skip=os4,  filters=self._make_divisible(decode_filters / 4), prefix='os4')
+        x = self.guide_up_project(x=x, skip=os2,  filters=self._make_divisible(decode_filters / 8), prefix='os2')
         
         # os2 classifer -> 256x256
         output = self.classifier(x=x)

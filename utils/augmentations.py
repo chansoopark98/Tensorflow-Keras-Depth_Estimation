@@ -15,6 +15,7 @@ class Augmentation(object):
 
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
+        image = (image - 0.5) * 2.0
         depth /= 10.
         
         depth_zero_mask = tf.cast(tf.math.equal(depth, 0.), tf.float32)

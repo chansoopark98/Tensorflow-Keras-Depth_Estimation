@@ -140,9 +140,9 @@ class DepthEstimationLoss():
         normal_map_loss = self.normal_map_loss(y_true=y_true, y_pred=y_pred)
 
         total_loss = (1.0 * ssim_loss) +\
-             (0.1 * mae_loss) +\
-                  (0.5 * edge_smooth_loss) +\
-                  (0.5 * gradient_loss) +\
+             (1.0 * mae_loss) +\
+                  (1.0 * edge_smooth_loss) +\
+                  (1.0 * gradient_loss) +\
                   normal_map_loss
         return total_loss
     
