@@ -86,4 +86,4 @@ class DepthEstimationLoss():
                   (0.5 * edge_smooth_loss) +\
                   (0.5 * gradient_loss) +\
                   normal_map_loss
-        return total_loss
+        return mae_loss

@@ -18,7 +18,7 @@ if __name__ == "__main__":
     max_depth_scale = 0
     min_depth_scale = 0
     i = 1
-    for img, depth in test_data.take(47584):
+    for img, depth in test_data.take(dataset.number_train):
         # depth = tf.cast(depth, tf.float32)
         
         rows = 1
@@ -38,10 +38,18 @@ if __name__ == "__main__":
         ax0.axis("off")
 
         plt.show()
-
-        print(i)
+        if i % 100 == 0:
+            print(i)
         i+=1
         
+        is_inf = tf.reduce_any(tf.math.is_inf(depth))
+        
+        is_nan = tf.reduce_any(tf.math.is_nan(depth))
+        
+        if is_inf is True:
+            print('inf')
+        if is_nan is True:
+            print('nan')
         max_depth = tf.reduce_max(depth)
         if max_depth >= max_depth_scale:
             max_depth_scale = max_depth

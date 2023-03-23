@@ -9,12 +9,14 @@ class Augmentation(object):
         self.min_depth = 0.05
         self.max_depth = 1.0
 
+    @tf.function
     def add_gaussian_noise(self, image, depth, mean=0.0, stddev=10.):
         noise = tf.random.normal(shape=tf.shape(image), mean=mean, stddev=stddev)
         noisy_image = image + noise
         noisy_image = tf.clip_by_value(noisy_image, 0.0, 255.)
         return noisy_image, depth
 
+    @tf.function
     def random_scaling(self, image, depth, scale_range=(0.8, 1.2)):
         scale = tf.random.uniform([], minval=scale_range[0], maxval=scale_range[1])
         original_height, original_width, _ = image.shape
@@ -22,8 +24,8 @@ class Augmentation(object):
         new_width = tf.cast(tf.cast(original_width, tf.float32) * scale, tf.int32)
 
         # Resize the image and depth map using the random scale
-        scaled_image = tf.image.resize(image, (new_height, new_width))
-        scaled_depth_map = tf.image.resize(depth, (new_height, new_width))
+        scaled_image = tf.image.resize(image, (new_height, new_width), method= tf.image.ResizeMethod.BILINEAR)
+        scaled_depth_map = tf.image.resize(depth, (new_height, new_width), method= tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
         if scale < 1.0:
             # Pad the scaled image and depth map to match the target size
@@ -46,6 +48,7 @@ class Augmentation(object):
             
         return resized_image, resized_depth_map
 
+    @tf.function
     def normalize(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image /= 255.
         depth /= 10.
@@ -61,21 +64,28 @@ class Augmentation(object):
         # Clip the remaining values
         inverse_depth_data = tf.clip_by_value(inverse_depth_data, 0., 20.)
 
+        maximum_zero_mask = tf.cast(tf.math.equal(inverse_depth_data, 20.), tf.float32)
+        inverse_depth_data *= (1.0 - maximum_zero_mask)
+
+        inverse_depth_data = tf.where(tf.math.is_nan(inverse_depth_data), 0., inverse_depth_data)
+        
         return image, inverse_depth_data
 
-        
+    @tf.function
     def random_gamma(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         random_gamma = tf.random.uniform([], 0.8, 1.2)
         image = image ** random_gamma
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 
+    @tf.function
     def random_brightness(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         random_bright = tf.random.uniform([], 0.7, 1.3)
         image = image * random_bright
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 
+    @tf.function
     def random_color(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         colors = tf.random.uniform([3], 0.8, 1.2)
         white = tf.ones([self.image_size[0], self.image_size[1]])
@@ -84,7 +94,7 @@ class Augmentation(object):
         image = tf.clip_by_value(image, 0, 255)
         return (image, depth)
 
-
+    @tf.function
     def random_crop(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         scale = tf.random.uniform([], 1.0, self.max_crop_scale)
 
@@ -105,6 +115,7 @@ class Augmentation(object):
 
         return (image, depth)
     
+    @tf.function
     def random_rotate(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         # Degrees to Radian
         upper = 10 * (3.14 / 180.0)
@@ -116,7 +127,7 @@ class Augmentation(object):
 
         return (image, depth)
 
-    
+    @tf.function    
     def horizontal_flip(self, image: tf.Tensor, depth: tf.Tensor) -> Union[tf.Tensor, tf.Tensor]:
         image = tf.image.flip_left_right(image=image)
         depth = tf.image.flip_left_right(image=depth)

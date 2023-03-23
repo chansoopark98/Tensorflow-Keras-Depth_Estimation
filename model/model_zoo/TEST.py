@@ -127,7 +127,7 @@ class TEST(object):
     
     def guide_up_project(self, x, skip, filters, prefix):
         x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
-        skip = cbam_block(cbam_feature=skip)
+        # skip = cbam_block(cbam_feature=skip)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
         x = self.stack_conv(x=x, filters=filters, size=3, prefix=prefix+'_stack_5x5_2')
         x = self.stack_conv(x=x, filters=filters, size=3,prefix=prefix+'_stack_3x3_1')
@@ -140,7 +140,7 @@ class TEST(object):
                                     padding='same',
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
-        # x = tf.keras.layers.Activation('relu')(x)
+        x = tf.keras.layers.Activation('relu')(x)
         x = BilinearUpSampling2D((2, 2), name='final_upsampling2d')(x)
        
         return x

@@ -41,15 +41,15 @@ class DataLoadHandler(object):
         # self.custom_train = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[:{0}%]'.format(90))
         # self.custom_valid = tfds.load(name='CustomDepth', data_dir=self.data_dir, split='train[{0}%:]'.format(90))
         
-        self.train_data = self.nyu_train.concatenate(self.diode_train) # self.nyu_train.concatenate(self.custom_train)
-        self.valid_data = self.nyu_valid.concatenate(self.diode_valid)
+        self.train_data = self.diode_train #.concatenate(self.diode_train) # self.nyu_train.concatenate(self.custom_train)
+        self.valid_data = self.diode_valid #.concatenate(self.diode_valid)
         self.test_data = self.valid_data
 
         # self.number_custom_train = self.custom_train.reduce(0, lambda x, _: x + 1).numpy()
         # self.number_custom_valid = self.custom_valid.reduce(0, lambda x, _: x + 1).numpy()
         
-        self.number_train = 47584 + 8574 #self.train_data.reduce(0, lambda x, _: x + 1).numpy()
-        self.number_valid = 654 + 325 # self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_train = 8574 #+ 8574 #self.train_data.reduce(0, lambda x, _: x + 1).numpy()
+        self.number_valid = 325 #+ 325 # self.valid_data.reduce(0, lambda x, _: x + 1).numpy()
         self.number_test = self.number_valid
         
         self.train_data.shuffle(self.number_train)
@@ -113,25 +113,25 @@ class GenerateDatasets(DataLoadHandler):
         image = tf.image.resize(image, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.BILINEAR)
         depth = tf.image.resize(depth, size=(self.image_size[0], self.image_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_scaling(image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_scaling(image, depth=depth)
 
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.add_gaussian_noise(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.add_gaussian_noise(image=image, depth=depth)
 
-        if tf.random.uniform([]) > 0.2:
-            image, depth = self.augmentations.random_rotate(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.2:
+        #     image, depth = self.augmentations.random_rotate(image=image, depth=depth)
 
-        # Color augmentation
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_gamma(image=image, depth=depth)
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_brightness(image=image, depth=depth)
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.random_color(image=image, depth=depth)
+        # # Color augmentation
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_gamma(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_brightness(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.random_color(image=image, depth=depth)
 
-        if tf.random.uniform([]) > 0.5:
-            image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
+        # if tf.random.uniform([]) > 0.5:
+        #     image, depth = self.augmentations.horizontal_flip(image=image, depth=depth)
 
         image, depth = self.augmentations.normalize(image=image, depth=depth)
         return (image, depth)
