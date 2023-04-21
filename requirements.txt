@@ -1,6 +1,8 @@
-tensorflow
+tensorflow==2.12.0
 tensorflow_datasets
 tensorflow_addons
 tensorflow_io
 matplotlib
 tqdm
+opencv-python
+natsort
