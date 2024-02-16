@@ -12,7 +12,7 @@ tf.config.set_soft_device_placement(True)
 
 max_scale = 10
 sm = plt.cm.ScalarMappable(cmap='plasma', norm=plt.Normalize(vmin=0, vmax=1))
-plt.colorbar(sm)
+# plt.colorbar(sm)
 
 if __name__ == "__main__":
     max_depth_scale = 0

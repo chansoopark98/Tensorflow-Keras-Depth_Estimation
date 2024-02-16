@@ -2,6 +2,7 @@ import tensorflow as tf
 import keras.utils.conv_utils as conv_utils
 from .cbam import cbam_block
 
+
 def normalize_data_format(value):
     if value is None:
         value = tf.keras.backend.image_data_format()

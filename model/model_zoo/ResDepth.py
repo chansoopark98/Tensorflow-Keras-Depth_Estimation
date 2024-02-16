@@ -113,22 +113,20 @@ class ResDepth(object):
 
     def up_project(self, x, skip, filters, prefix):
         "up_project function"
-        # x = BilinearUpSampling2D((2, 2), name=prefix+'_bilinear_upsampling2d')(x)
-        # x = NearestSampling2D((2, 2), name=prefix+'_nearest_upsampling2d')(x)
-        x = tf.keras.layers.Conv2DTranspose(filters=filters, kernel_size=3, strides=2, padding='same', use_bias=True, name=prefix+'_transpose_1')(x)
+        x = tf.keras.layers.UpSampling2D((2, 2), interpolation='bilinear')(x)
 
-        skip = cbam_block(skip)
         x = tf.keras.layers.Concatenate(name=prefix+'_concat')([x, skip])
 
         # Final std conv
-        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', use_bias=False, name=prefix+'_conv_1')(x)
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=1, strides=1, padding='same', use_bias=False, name=prefix+'_conv_1')(x)
         x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
         x = tf.keras.layers.Activation(self.activation)(x)
 
-        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', use_bias=True, name=prefix+'_conv_2')(x)
-        x = tf.keras.layers.Activation(self.activation)(x)
-
         x = cbam_block(x)
+
+        x = tf.keras.layers.Conv2D(filters=filters, kernel_size=3, strides=1, padding='same', use_bias=False, name=prefix+'_conv_1')(x)
+        x = tf.keras.layers.BatchNormalization(momentum=self.MOMENTUM)(x)
+        x = tf.keras.layers.Activation(self.activation)(x)
         return x
 
     def classifier(self, x: tf.Tensor) -> tf.Tensor:
@@ -137,12 +135,10 @@ class ResDepth(object):
                                    name='classifier_conv',
                                    kernel_initializer=self.kernel_initializer)(x)
         
-        x = NearestSampling2D((2, 2), name='final_upsampling2d')(x)
-       
+        x = tf.keras.layers.UpSampling2D((2, 2), interpolation='bilinear', name='final_upsampling2d')(x)
         return x
 
-    def build_model(self, hp=None) -> tf.keras.models.Model:
-        
+    def build_model(self) -> tf.keras.models.Model:
         # from .EfficientNetV2 import EfficientNetV2S
         # base = EfficientNetV2S(input_shape=(*self.image_size, 3), num_classes=0, pretrained=None)
 
